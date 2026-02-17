@@ -11,7 +11,7 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
 - **Language**: Swift (latest, macOS 15+)
 - **UI Framework**: AppKit (not SwiftUI — better control over tab bar, WebView lifecycle, window chrome)
 - **Web Engine**: WKWebView (Safari/WebKit engine)
-- **Storage**: SQLite via `GRDB.swift` or raw SQLite3 C API for history
+- **Storage**: SQLite via `GRDB.swift` (lightweight, eliminates boilerplate vs raw C API)
 - **Distribution**: `.dmg` (outside App Store)
 - **Build**: Xcode project, or Swift Package Manager + `xcodebuild`
 
@@ -35,7 +35,9 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
 - Middle-click or Cmd+click on YouTube links = open in new tab
 
 #### 3. Tab Suspension
-- Tabs inactive for >5 minutes: deallocate WKWebView, retain only URL + title + scroll position
+- Tabs inactive for >5 minutes: deallocate WKWebView, retain only URL + title
+- **Never suspend tabs with playing or paused video** — check via injected JS (`document.querySelector('video').paused` / `document.querySelector('video').ended`) before suspending. Only suspend tabs showing non-video pages or completed videos.
+- No scroll position restoration — YouTube is an SPA so scroll restore after re-navigation is unreliable. Just reload the URL.
 - Visual indicator on suspended tabs (dimmed or small icon)
 - Clicking a suspended tab re-creates the WebView and loads the URL
 - YouTube handles session restoration well via its own local storage
@@ -55,7 +57,13 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
 - Any other domain: block or open in default browser
 - Back / Forward buttons wired to WKWebView's `goBack()` / `goForward()`
 
-#### 6. Google SSO / Authentication
+#### 6. User-Agent
+- Set a custom user-agent string matching desktop Safari to avoid degraded YouTube experiences
+- WKWebView's default UA may trigger YouTube's "unsupported browser" or mobile-style layouts
+- Configure via `WKWebView.customUserAgent` — use current Safari UA string
+- Test early: verify 4K playback, theater mode, and Premium features work with the chosen UA
+
+#### 7. Google SSO / Authentication
 - WKWebView with a persistent `WKWebsiteDataStore` (non-ephemeral)
 - This preserves cookies across launches — stay logged in
 - Enable JavaScript, allow cookies (including third-party for Google auth flow)
@@ -66,7 +74,7 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
   ```
 - All tabs share the same data store = single login session
 
-#### 7. History
+#### 8. History
 - SQLite database at `~/Library/Application Support/YTApp/history.db`
 - Schema:
   ```sql
@@ -82,7 +90,7 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
   ```
 - Record a history entry on every `youtube.com/watch?v=` page load
 - Extract video title from page title (WKWebView `title` property, strip " - YouTube" suffix)
-- Extract duration: inject small JS snippet to read from the video player DOM or page metadata
+- Extract duration: use `document.querySelector('video').duration` (returns seconds) — more stable than scraping YouTube's DOM classes which change frequently
 - History view: Cmd+Y opens a sheet/panel with:
   - Search field (filters by title, URL)
   - Scrollable list: title, duration, URL, timestamp
@@ -91,7 +99,7 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
   - "Clear All History" button with confirmation
 - Deduplicate: if same URL visited within 1 minute, update timestamp instead of inserting
 
-#### 8. Media Keys & Now Playing
+#### 9. Media Keys & Now Playing
 - Integrate with `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`
 - Play/pause, next track, previous track commands
 - Communicate with YouTube's player via injected JavaScript:
@@ -104,7 +112,13 @@ A dedicated, lightweight macOS app for YouTube Premium users. Own Cmd-Tab presen
   - Duration / elapsed: from `<video>` element properties
 - Poll or observe playback state every ~1s to keep Now Playing widget in sync
 
-#### 9. Settings (Minimal)
+#### 10. Picture-in-Picture
+- Enable native macOS PiP support — near-zero implementation cost with WKWebView
+- Set `allowsPictureInPictureMediaPlayback = true` on WKWebView configuration
+- YouTube's native PiP button will work automatically
+- Floating PiP window persists even when switching tabs or minimizing app
+
+#### 11. Settings (Minimal)
 - Link click behavior: "Open in same tab" vs "Open in new tab" (default: same tab, Cmd+click = new tab)
 - Tab suspension timeout: 5 min (default), configurable
 - Stored in `UserDefaults`
@@ -140,7 +154,7 @@ YTApp/
 |----------|--------|-----------|
 | UI Framework | AppKit | Full control over tab bar, WebView lifecycle. SwiftUI's WebView story is weak. |
 | Web Engine | WKWebView | Ships with macOS, zero bundle size, works with YouTube, supports Google SSO |
-| Storage | SQLite (direct) | No dependencies, fast, simple schema |
+| Storage | SQLite via GRDB.swift | Fast, simple schema, GRDB eliminates C API boilerplate |
 | Tab suspension | Dealloc WKWebView | Most aggressive memory savings. YouTube restores state from its own cookies/localStorage |
 | Cookie persistence | Default WKWebsiteDataStore | Survives app relaunch, shared across tabs |
 
@@ -170,14 +184,11 @@ YTApp/
 - Choose quality
 - Download to ~/Movies/YTApp/ or configurable location
 - Download manager panel showing progress
+- **Note**: yt-dlp is a cat-and-mouse game with YouTube — expect ongoing maintenance burden
 
 ### History Sync
 - iCloud CloudKit or simple file-based sync
 - Sync history + queue across Macs
-
-### Picture-in-Picture
-- Native macOS PiP support (WKWebView supports this)
-- Button to pop out video into floating PiP window
 
 ### Keyboard Shortcuts (Enhanced)
 - Vim-style navigation (optional)
@@ -201,7 +212,7 @@ hdiutil create -volname "YTApp" -srcfolder build/Release/YTApp.app -ov YTApp.dmg
 ---
 
 ## Open Questions / Risks
-1. **WKWebView + YouTube quality**: Should be fine (it's Safari's engine) but need to verify: 4K playback, VP9/AV1 codec support, HDR. Safari historically lags Chrome on VP9.
+1. **WKWebView + YouTube quality**: Should be fine (it's Safari's engine) but need to verify: 4K playback, VP9/AV1 codec support, HDR. Safari historically lags Chrome on VP9. **Prototype this first before building everything else.**
 2. **Third-party cookie changes**: WebKit is aggressive about ITP (Intelligent Tracking Prevention). Google SSO should work since we navigate to google.com directly, but worth testing early.
 3. **Media keys conflict**: If Safari or Chrome is also running, media keys might route to the wrong app. Need to test `MPRemoteCommandCenter` priority.
-4. **Tab suspension aggressiveness**: 5 min default might be too aggressive if someone has a video paused. Should probably exempt tabs with active/paused video — only suspend tabs showing non-video pages or completed videos.
+4. ~~**Tab suspension aggressiveness**~~ — Resolved: V1 spec now requires exempting tabs with playing/paused video from suspension.
