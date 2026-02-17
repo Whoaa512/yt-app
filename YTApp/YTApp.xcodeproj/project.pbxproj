@@ -1,0 +1,305 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001; };
+		AA000002 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000002; };
+		AA000003 /* TabManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000003; };
+		AA000004 /* Tab.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000004; };
+		AA000005 /* AddressBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000005; };
+		AA000006 /* HistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000006; };
+		AA000007 /* HistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000007; };
+		AA000008 /* MediaKeyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000008; };
+		AA000009 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000009; };
+		AA000010 /* URLRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000010; };
+		AA000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB000011; };
+		AA000012 /* MediaBridge.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000012; };
+		AA000013 /* DurationExtractor.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000013; };
+		AA000014 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BB000014; };
+		AA000015 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000017; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		BB000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BB000002 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		BB000003 /* TabManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabManager.swift; sourceTree = "<group>"; };
+		BB000004 /* Tab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tab.swift; sourceTree = "<group>"; };
+		BB000005 /* AddressBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressBarView.swift; sourceTree = "<group>"; };
+		BB000006 /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManager.swift; sourceTree = "<group>"; };
+		BB000007 /* HistoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryViewController.swift; sourceTree = "<group>"; };
+		BB000008 /* MediaKeyHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKeyHandler.swift; sourceTree = "<group>"; };
+		BB000009 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		BB000010 /* URLRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLRouter.swift; sourceTree = "<group>"; };
+		BB000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB000012 /* MediaBridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = MediaBridge.js; sourceTree = "<group>"; };
+		BB000013 /* DurationExtractor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = DurationExtractor.js; sourceTree = "<group>"; };
+		BB000014 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		BB000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB000016 /* YTApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YTApp.entitlements; sourceTree = "<group>"; };
+		BB000017 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DD000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000014 /* libsqlite3.tbd in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		EE000001 = {
+			isa = PBXGroup;
+			children = (
+				EE000002 /* YTApp */,
+				EE000004 /* Products */,
+				EE000005 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		EE000002 /* YTApp */ = {
+			isa = PBXGroup;
+			children = (
+				BB000001 /* AppDelegate.swift */,
+				BB000002 /* MainWindowController.swift */,
+				BB000003 /* TabManager.swift */,
+				BB000004 /* Tab.swift */,
+				BB000005 /* AddressBarView.swift */,
+				BB000006 /* HistoryManager.swift */,
+				BB000007 /* HistoryViewController.swift */,
+				BB000008 /* MediaKeyHandler.swift */,
+				BB000009 /* Settings.swift */,
+				BB000010 /* URLRouter.swift */,
+				BB000011 /* Assets.xcassets */,
+				BB000015 /* Info.plist */,
+				BB000016 /* YTApp.entitlements */,
+				BB000017 /* main.swift */,
+				EE000003 /* JS */,
+			);
+			path = YTApp;
+			sourceTree = "<group>";
+		};
+		EE000003 /* JS */ = {
+			isa = PBXGroup;
+			children = (
+				BB000012 /* MediaBridge.js */,
+				BB000013 /* DurationExtractor.js */,
+			);
+			path = JS;
+			sourceTree = "<group>";
+		};
+		EE000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CC000001 /* YTApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EE000005 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BB000014 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FF000001 /* YTApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF000004 /* Build configuration list for PBXNativeTarget "YTApp" */;
+			buildPhases = (
+				FF000002 /* Sources */,
+				DD000001 /* Frameworks */,
+				FF000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = YTApp;
+			productName = YTApp;
+			productReference = CC000001 /* YTApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FF000010 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = FF000011 /* Build configuration list for PBXProject "YTApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EE000001;
+			productRefGroup = EE000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FF000001 /* YTApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FF000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000011 /* Assets.xcassets in Resources */,
+				AA000012 /* MediaBridge.js in Resources */,
+				AA000013 /* DurationExtractor.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FF000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* AppDelegate.swift in Sources */,
+				AA000002 /* MainWindowController.swift in Sources */,
+				AA000003 /* TabManager.swift in Sources */,
+				AA000004 /* Tab.swift in Sources */,
+				AA000005 /* AddressBarView.swift in Sources */,
+				AA000006 /* HistoryManager.swift in Sources */,
+				AA000007 /* HistoryViewController.swift in Sources */,
+				AA000008 /* MediaKeyHandler.swift in Sources */,
+				AA000009 /* Settings.swift in Sources */,
+				AA000010 /* URLRouter.swift in Sources */,
+				AA000015 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		GG000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		GG000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		GG000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = YTApp/YTApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = UQLPM7JP4P;
+				INFOPLIST_FILE = YTApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cjw.ytapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		GG000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = YTApp/YTApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = UQLPM7JP4P;
+				INFOPLIST_FILE = YTApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.cjw.ytapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FF000011 /* Build configuration list for PBXProject "YTApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				GG000001 /* Debug */,
+				GG000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FF000004 /* Build configuration list for PBXNativeTarget "YTApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				GG000003 /* Debug */,
+				GG000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = FF000010 /* Project object */;
+}
