@@ -122,17 +122,46 @@ class TabManager {
         }
     }
 
+    private func currentMemoryMB() -> Double {
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return 0 }
+        return Double(info.resident_size) / (1024 * 1024)
+    }
+
+    private func isVideoURL(_ url: URL) -> Bool {
+        let path = url.absoluteString
+        return path.contains("/watch") || path.contains("/shorts/") || path.contains("/live/")
+    }
+
     private func suspendInactiveTabs() {
+        guard currentMemoryMB() > 750 else { return }
+
         let timeout = TimeInterval(Settings.suspensionTimeoutMinutes * 60)
         let now = Date()
+
+        // Collect eligible tabs, preferring video URLs over homepage
+        var candidates: [(index: Int, tab: Tab)] = []
         for (i, tab) in tabs.enumerated() {
             guard i != selectedIndex,
                   !tab.isSuspended,
                   tab.webView != nil,
                   !tab.isPlayingMedia,
                   now.timeIntervalSince(tab.lastActiveTime) > timeout else { continue }
-            tab.suspend()
-            delegate?.tabManager(self, didUpdateTab: tab, at: i)
+            candidates.append((i, tab))
+        }
+
+        // Sort so video URLs come first (suspended before homepage tabs)
+        candidates.sort { isVideoURL($0.tab.url) && !isVideoURL($1.tab.url) }
+
+        for candidate in candidates {
+            candidate.tab.suspend()
+            delegate?.tabManager(self, didUpdateTab: candidate.tab, at: candidate.index)
         }
     }
 }
