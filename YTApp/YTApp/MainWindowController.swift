@@ -3,7 +3,7 @@ import WebKit
 
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
-    HistoryViewControllerDelegate, ToolbarDelegate {
+    HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -15,6 +15,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // Custom tab bar
     private let tabStackView = NSStackView()
     private var jsConsoleController: JSConsoleWindowController?
+
+    // Queue sidebar
+    private var queueSidebar: QueueSidebarView?
+    private var queueSidebarWidth: NSLayoutConstraint?
+    private var isQueueVisible = false
 
     private let durationExtractorJS: String = {
         if let url = Bundle.main.url(forResource: "DurationExtractor", withExtension: "js"),
@@ -53,6 +58,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "urlChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "theaterChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "consoleLog")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
+        QueueManager.shared.delegate = self
         toolbar.updatePlaybackRate(Settings.playbackRate)
 
         // Ensure theater cookie is set before any tabs load
@@ -116,10 +123,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         webViewContainer.wantsLayer = true
         webViewContainer.layer?.backgroundColor = NSColor.black.cgColor
 
+        // Queue sidebar
+        let sidebar = QueueSidebarView(frame: .zero)
+        sidebar.delegate = self
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+        self.queueSidebar = sidebar
+
+        // Body container (webview + optional queue sidebar)
+        let bodyContainer = NSView()
+        bodyContainer.translatesAutoresizingMaskIntoConstraints = false
+        bodyContainer.addSubview(webViewContainer)
+        bodyContainer.addSubview(sidebar)
+
         contentView.addSubview(tabBarContainer)
         contentView.addSubview(addressBar)
         contentView.addSubview(toolbar)
-        contentView.addSubview(webViewContainer)
+        contentView.addSubview(bodyContainer)
+
+        let sidebarWidth = sidebar.widthAnchor.constraint(equalToConstant: 0)
+        self.queueSidebarWidth = sidebarWidth
 
         NSLayoutConstraint.activate([
             tabBarContainer.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor),
@@ -137,10 +159,21 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             toolbar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             toolbar.heightAnchor.constraint(equalToConstant: 30),
 
-            webViewContainer.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
-            webViewContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            webViewContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            webViewContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            bodyContainer.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            bodyContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            bodyContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            bodyContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+
+            webViewContainer.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
+            webViewContainer.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor),
+            webViewContainer.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
+
+            sidebar.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
+            sidebar.trailingAnchor.constraint(equalTo: bodyContainer.trailingAnchor),
+            sidebar.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
+            sidebarWidth,
+
+            webViewContainer.trailingAnchor.constraint(equalTo: sidebar.leadingAnchor),
         ])
     }
 
@@ -198,6 +231,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let forwardItem = NSMenuItem(title: "Forward", action: #selector(goForward), keyEquivalent: "]")
         forwardItem.keyEquivalentModifierMask = [.command]
         viewMenu.addItem(forwardItem)
+        viewMenu.addItem(.separator())
+        let queueItem = NSMenuItem(title: "Toggle Queue", action: #selector(toggleQueue), keyEquivalent: "q")
+        queueItem.keyEquivalentModifierMask = [.command, .shift]
+        viewMenu.addItem(queueItem)
         let viewMenuItem = NSMenuItem()
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
@@ -528,6 +565,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             return
         }
 
+        if message.name == "queueBridge" {
+            if let body = message.body as? String,
+               let data = body.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let videoId = json["videoId"] as? String {
+                let title = json["title"] as? String ?? ""
+                let channel = json["channel"] as? String ?? ""
+                QueueManager.shared.addItem(videoId: videoId, title: title, channel: channel)
+                // Auto-show queue sidebar when adding
+                if !isQueueVisible { toggleQueue() }
+            }
+            return
+        }
+
         if message.name == "theaterChanged" {
             if let isTheater = message.body as? Bool {
                 Settings.theaterMode = isTheater
@@ -591,7 +642,42 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             } else {
                 MediaKeyHandler.shared.clearNowPlaying()
             }
+
+            // Auto-play next in queue when video ends
+            if ended && QueueManager.shared.hasNext {
+                handleVideoEnded()
+            }
         }
+    }
+
+    // MARK: - Queue
+
+    @objc func toggleQueue() {
+        isQueueVisible.toggle()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            queueSidebarWidth?.animator().constant = isQueueVisible ? QueueSidebarView.width : 0
+        }
+        queueSidebar?.reload()
+    }
+
+    func queueSidebar(_ sidebar: QueueSidebarView, didSelectItem item: QueueItem) {
+        tabManager.activeTab?.webView?.load(URLRequest(url: item.watchURL))
+    }
+
+    func queueSidebarDidClose(_ sidebar: QueueSidebarView) {
+        toggleQueue()
+    }
+
+    func queueDidUpdate() {
+        queueSidebar?.reload()
+    }
+
+    private func handleVideoEnded() {
+        guard let next = QueueManager.shared.playNext() else { return }
+        tabManager.activeTab?.webView?.load(URLRequest(url: next.watchURL))
+        queueSidebar?.reload()
     }
 
     // MARK: - ToolbarDelegate

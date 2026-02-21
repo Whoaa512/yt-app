@@ -44,6 +44,13 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject QueueInterceptor.js at document start (capture phase needs early registration)
+        if let jsURL = Bundle.main.url(forResource: "QueueInterceptor", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject TheaterMode.js at document start (before YouTube reads prefs)
         updateTheaterModeScript(on: config.userContentController)
 
