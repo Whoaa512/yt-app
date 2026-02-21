@@ -113,6 +113,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         toolbar.delegate = self
 
         webViewContainer.translatesAutoresizingMaskIntoConstraints = false
+        webViewContainer.wantsLayer = true
+        webViewContainer.layer?.backgroundColor = NSColor.black.cgColor
 
         contentView.addSubview(tabBarContainer)
         contentView.addSubview(addressBar)

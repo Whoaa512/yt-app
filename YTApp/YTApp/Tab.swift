@@ -26,6 +26,7 @@ class Tab {
         wv.allowsBackForwardNavigationGestures = true
         wv.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
         wv.allowsLinkPreview = true
+        wv.setValue(false, forKey: "drawsBackground")
         if #available(macOS 13.3, *) {
             wv.isInspectable = true
         }
