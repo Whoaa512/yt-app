@@ -12,6 +12,24 @@ struct Settings {
         get { defaults.bool(forKey: "openLinksInNewTab") }
         set { defaults.set(newValue, forKey: "openLinksInNewTab") }
     }
+
+    static var playbackRate: Float {
+        get {
+            let val = defaults.float(forKey: "playbackRate")
+            return val > 0 ? val : 1.0
+        }
+        set { defaults.set(newValue, forKey: "playbackRate") }
+    }
+
+    static var theaterMode: Bool {
+        get { defaults.bool(forKey: "theaterMode") }
+        set { defaults.set(newValue, forKey: "theaterMode") }
+    }
+
+    static var forceTheaterMode: Bool {
+        get { defaults.bool(forKey: "forceTheaterMode") }
+        set { defaults.set(newValue, forKey: "forceTheaterMode") }
+    }
 }
 
 private extension Int {
