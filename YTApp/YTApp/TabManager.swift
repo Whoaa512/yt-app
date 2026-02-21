@@ -37,6 +37,16 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject URLObserver.js for SPA navigation tracking
+        if let jsURL = Bundle.main.url(forResource: "URLObserver", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
+        // Inject TheaterMode.js at document start (before YouTube reads prefs)
+        updateTheaterModeScript(on: config.userContentController)
+
         // PiP support
         config.preferences.isElementFullscreenEnabled = true
 
@@ -47,6 +57,46 @@ class TabManager {
 
         return config
     }()
+
+    /// Rebuilds the theater-mode document-start script with the current setting.
+    /// Sets the 'wide=1' cookie via WKHTTPCookieStore so it's present before page load.
+    func ensureTheaterCookie(completion: @escaping () -> Void) {
+        guard Settings.theaterMode else {
+            completion()
+            return
+        }
+        let cookieStore = sharedConfiguration.websiteDataStore.httpCookieStore
+        let properties: [HTTPCookiePropertyKey: Any] = [
+            .name: "wide",
+            .value: "1",
+            .domain: ".youtube.com",
+            .path: "/",
+            .expires: Date(timeIntervalSinceNow: 365 * 24 * 60 * 60),
+        ]
+        if let cookie = HTTPCookie(properties: properties) {
+            cookieStore.setCookie(cookie) {
+                completion()
+            }
+        } else {
+            completion()
+        }
+    }
+
+    /// Re-sets YouTube's session-only 'wide' cookie with an expiration so it persists.
+    func updateTheaterModeScript(on controller: WKUserContentController? = nil) {
+        let uc = controller ?? sharedConfiguration.userContentController
+        let enabled = Settings.theaterMode ? "true" : "false"
+        if let url = Bundle.main.url(forResource: "TheaterMode", withExtension: "js"),
+           var source = try? String(contentsOf: url) {
+            source = source.replacingOccurrences(of: "%THEATER_ENABLED%", with: enabled)
+            // Remove existing theater scripts and re-add all scripts
+            // (WKUserContentController doesn't support removing individual scripts,
+            //  so we track and re-add)
+            let script = WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            // We can't selectively remove, but adding another is fine — last write to localStorage wins
+            uc.addUserScript(script)
+        }
+    }
 
     func startSuspensionTimer() {
         suspensionTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in

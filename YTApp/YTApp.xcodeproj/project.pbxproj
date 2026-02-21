@@ -22,6 +22,10 @@
 		AA000013 /* DurationExtractor.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000013; };
 		AA000014 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = BB000014; };
 		AA000015 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000017; };
+		AA000016 /* ToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000018; };
+		AA000017 /* URLObserver.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000019; };
+		AA000018 /* JSConsoleWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000020; };
+		AA000019 /* TheaterMode.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000021; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -42,6 +46,10 @@
 		BB000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB000016 /* YTApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YTApp.entitlements; sourceTree = "<group>"; };
 		BB000017 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		BB000018 /* ToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarView.swift; sourceTree = "<group>"; };
+		BB000019 /* URLObserver.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = URLObserver.js; sourceTree = "<group>"; };
+		BB000020 /* JSConsoleWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSConsoleWindowController.swift; sourceTree = "<group>"; };
+		BB000021 /* TheaterMode.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = TheaterMode.js; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -79,6 +87,8 @@
 				BB000008 /* MediaKeyHandler.swift */,
 				BB000009 /* Settings.swift */,
 				BB000010 /* URLRouter.swift */,
+				BB000018 /* ToolbarView.swift */,
+				BB000020 /* JSConsoleWindowController.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -93,6 +103,8 @@
 			children = (
 				BB000012 /* MediaBridge.js */,
 				BB000013 /* DurationExtractor.js */,
+				BB000019 /* URLObserver.js */,
+				BB000021 /* TheaterMode.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -169,6 +181,8 @@
 				AA000011 /* Assets.xcassets in Resources */,
 				AA000012 /* MediaBridge.js in Resources */,
 				AA000013 /* DurationExtractor.js in Resources */,
+				AA000017 /* URLObserver.js in Resources */,
+				AA000019 /* TheaterMode.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -190,6 +204,8 @@
 				AA000009 /* Settings.swift in Sources */,
 				AA000010 /* URLRouter.swift in Sources */,
 				AA000015 /* main.swift in Sources */,
+				AA000016 /* ToolbarView.swift in Sources */,
+				AA000018 /* JSConsoleWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

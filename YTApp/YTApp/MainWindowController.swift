@@ -3,16 +3,18 @@ import WebKit
 
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
-    HistoryViewControllerDelegate {
+    HistoryViewControllerDelegate, ToolbarDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
+    private let toolbar = ToolbarView(frame: .zero)
     private let tabBar = NSSegmentedControl()
     private let webViewContainer = NSView()
     private var tabBarScrollView: NSScrollView!
 
     // Custom tab bar
     private let tabStackView = NSStackView()
+    private var jsConsoleController: JSConsoleWindowController?
 
     private let durationExtractorJS: String = {
         if let url = Bundle.main.url(forResource: "DurationExtractor", withExtension: "js"),
@@ -48,7 +50,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         tabManager.delegate = self
         tabManager.sharedConfiguration.userContentController.add(self, name: "mediaBridge")
-        tabManager.addTab()
+        tabManager.sharedConfiguration.userContentController.add(self, name: "urlChanged")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "theaterChanged")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "consoleLog")
+        toolbar.updatePlaybackRate(Settings.playbackRate)
+
+        // Ensure theater cookie is set before any tabs load
+        tabManager.ensureTheaterCookie {
+            self.restoreTabs()
+        }
         tabManager.startSuspensionTimer()
 
         MediaKeyHandler.shared.setup()
@@ -99,10 +109,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         addressBar.translatesAutoresizingMaskIntoConstraints = false
         addressBar.delegate = self
 
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.delegate = self
+
         webViewContainer.translatesAutoresizingMaskIntoConstraints = false
 
         contentView.addSubview(tabBarContainer)
         contentView.addSubview(addressBar)
+        contentView.addSubview(toolbar)
         contentView.addSubview(webViewContainer)
 
         NSLayoutConstraint.activate([
@@ -116,7 +130,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             addressBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             addressBar.heightAnchor.constraint(equalToConstant: 36),
 
-            webViewContainer.topAnchor.constraint(equalTo: addressBar.bottomAnchor),
+            toolbar.topAnchor.constraint(equalTo: addressBar.bottomAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: 30),
+
+            webViewContainer.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             webViewContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             webViewContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             webViewContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
@@ -173,6 +192,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
+        let devMenu = NSMenu(title: "Develop")
+        let jsConsoleItem = NSMenuItem(title: "JS Console", action: #selector(toggleJSConsole), keyEquivalent: "j")
+        jsConsoleItem.keyEquivalentModifierMask = [.command, .option]
+        devMenu.addItem(jsConsoleItem)
+        let devMenuItem = NSMenuItem()
+        devMenuItem.submenu = devMenu
+        mainMenu.addItem(devMenuItem)
+
         let historyMenu = NSMenu(title: "History")
         historyMenu.addItem(withTitle: "Show History", action: #selector(showHistory), keyEquivalent: "y")
         let historyMenuItem = NSMenuItem()
@@ -214,6 +241,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.activeTab?.webView?.goForward()
     }
 
+    @objc func toggleJSConsole() {
+        if let controller = jsConsoleController, controller.window?.isVisible == true {
+            controller.window?.close()
+            jsConsoleController = nil
+        } else {
+            let controller = JSConsoleWindowController(webView: tabManager.activeTab?.webView)
+            controller.showWindow(nil)
+            controller.window?.orderFront(nil)
+            jsConsoleController = controller
+        }
+    }
+
     @objc func showHistory() {
         let vc = HistoryViewController()
         vc.historyDelegate = self
@@ -230,6 +269,34 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func saveWindowState() {
         guard let frame = window?.frame else { return }
         UserDefaults.standard.set(NSStringFromRect(frame), forKey: "windowFrame")
+
+        // Save tabs
+        let tabData = tabManager.tabs.map { tab -> [String: String] in
+            let url = tab.webView?.url ?? tab.url
+            let title = tab.webView?.title ?? tab.title
+            return ["url": url.absoluteString, "title": title]
+        }
+        UserDefaults.standard.set(tabData, forKey: "savedTabs")
+        UserDefaults.standard.set(tabManager.selectedIndex, forKey: "savedTabSelectedIndex")
+    }
+
+    private func restoreTabs() {
+        if let tabData = UserDefaults.standard.array(forKey: "savedTabs") as? [[String: String]], !tabData.isEmpty {
+            for entry in tabData {
+                if let urlStr = entry["url"], let url = URL(string: urlStr) {
+                    let tab = tabManager.addTab(url: url)
+                    if let title = entry["title"], !title.isEmpty {
+                        tab.title = title
+                    }
+                }
+            }
+            let savedIndex = UserDefaults.standard.integer(forKey: "savedTabSelectedIndex")
+            if savedIndex >= 0 && savedIndex < tabManager.tabs.count {
+                tabManager.selectTab(at: savedIndex)
+            }
+        } else {
+            tabManager.addTab()
+        }
     }
 
     private func restoreWindowState() {
@@ -281,6 +348,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
         ])
         addressBar.setURL(tab.webView?.url ?? tab.url)
+        jsConsoleController?.updateWebView(tab.webView)
     }
 
     // MARK: - TabManagerDelegate
@@ -355,6 +423,69 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 HistoryManager.shared.recordVisit(url: url.absoluteString, title: tab.title, duration: duration)
             }
         }
+
+        // Apply saved playback rate and theater mode on watch pages
+        if let url = webView.url, url.absoluteString.contains("youtube.com") {
+            applyPlaybackSettings(to: webView)
+        }
+    }
+
+    private func applyPlaybackSettings(to webView: WKWebView) {
+        let rate = Settings.playbackRate
+        let theater = Settings.theaterMode
+
+        // Apply playback rate once video element exists
+        webView.evaluateJavaScript("""
+            (function() {
+                function applyRate() {
+                    const v = document.querySelector('video');
+                    if (v) { v.playbackRate = \(rate); return true; }
+                    return false;
+                }
+                if (!applyRate()) {
+                    const obs = new MutationObserver(function() {
+                        if (applyRate()) obs.disconnect();
+                    });
+                    obs.observe(document.body, { childList: true, subtree: true });
+                    setTimeout(function() { obs.disconnect(); }, 10000);
+                }
+            })()
+        """)
+
+        // Log theater cookie status to JS console
+        webView.evaluateJavaScript("""
+            (function() {
+                var wide = document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('wide='));
+                var theater = document.querySelector('ytd-watch-flexy')?.hasAttribute('theater');
+                if (window.webkit && window.webkit.messageHandlers.consoleLog) {
+                    window.webkit.messageHandlers.consoleLog.postMessage(
+                        'cookie: ' + (wide||'wide NOT set') + ' | flexy theater=' + theater
+                    );
+                }
+            })()
+        """)
+
+        // Theater mode — click button on SPA navigation if needed
+        if theater {
+            webView.evaluateJavaScript("""
+                (function() {
+                    function applyTheater() {
+                        const page = document.querySelector('ytd-watch-flexy');
+                        if (!page) return false;
+                        if (page.hasAttribute('theater')) return true;
+                        const btn = document.querySelector('.ytp-size-button');
+                        if (btn) { btn.click(); return true; }
+                        return false;
+                    }
+                    let attempts = 0;
+                    function tryApply() {
+                        if (applyTheater() || ++attempts > 20) return;
+                        setTimeout(tryApply, 250);
+                    }
+                    tryApply();
+                })()
+            """)
+        }
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -380,6 +511,51 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "consoleLog" {
+            if let text = message.body as? String {
+                jsConsoleController?.appendSystemLog(text)
+            }
+            return
+        }
+
+        if message.name == "theaterChanged" {
+            if let isTheater = message.body as? Bool {
+                Settings.theaterMode = isTheater
+                tabManager.updateTheaterModeScript()
+            }
+            return
+        }
+
+        if message.name == "urlChanged" {
+            guard let urlString = message.body as? String,
+                  let url = URL(string: urlString),
+                  let webView = message.webView,
+                  let tab = tabForWebView(webView) else { return }
+            tab.url = url
+            let title = webView.title ?? tab.title
+            if title != tab.title {
+                tab.title = title
+                if tab.title.hasSuffix(" - YouTube") {
+                    tab.title = String(tab.title.dropLast(10))
+                }
+            }
+            tabManager.updateTab(tab)
+            if tab.id == tabManager.activeTab?.id {
+                addressBar.setURL(url)
+                window?.title = tab.title
+            }
+            // Record history for watch pages
+            if url.absoluteString.contains("youtube.com/watch") {
+                // Re-apply playback rate on SPA navigation
+                applyPlaybackSettings(to: webView)
+                webView.evaluateJavaScript(durationExtractorJS) { result, _ in
+                    let duration = result as? String
+                    HistoryManager.shared.recordVisit(url: url.absoluteString, title: tab.title, duration: duration)
+                }
+            }
+            return
+        }
+
         guard message.name == "mediaBridge",
               let body = message.body as? String,
               let data = body.data(using: .utf8),
@@ -406,6 +582,33 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 MediaKeyHandler.shared.clearNowPlaying()
             }
         }
+    }
+
+    // MARK: - ToolbarDelegate
+
+    func toolbarGoBack(_ toolbar: ToolbarView) { goBack() }
+    func toolbarGoForward(_ toolbar: ToolbarView) { goForward() }
+    func toolbarRefresh(_ toolbar: ToolbarView) { tabManager.activeTab?.webView?.reload() }
+
+    func toolbarPlayPause(_ toolbar: ToolbarView) {
+        tabManager.activeTab?.webView?.evaluateJavaScript("""
+            (function() { const v = document.querySelector('video'); if (v) { v.paused ? v.play() : v.pause(); } })()
+        """)
+    }
+
+    func toolbarPrevTrack(_ toolbar: ToolbarView) {
+        tabManager.activeTab?.webView?.evaluateJavaScript("""
+            (function() { const v = document.querySelector('video'); if (v) { v.currentTime = Math.max(0, v.currentTime - 10); } })()
+        """)
+    }
+
+    func toolbarNextTrack(_ toolbar: ToolbarView) {
+        tabManager.activeTab?.webView?.evaluateJavaScript("document.querySelector('.ytp-next-button')?.click()")
+    }
+
+    func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float) {
+        Settings.playbackRate = rate
+        tabManager.activeTab?.webView?.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
     }
 
     // MARK: - AddressBarDelegate
