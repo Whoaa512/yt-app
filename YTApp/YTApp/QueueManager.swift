@@ -76,6 +76,34 @@ class QueueManager {
         items.append(item)
         save()
         delegate?.queueDidUpdate()
+
+        // If title is missing (just videoId), fetch via oEmbed
+        if title.isEmpty || title == videoId {
+            fetchMetadata(for: videoId) { [weak self] fetchedTitle, fetchedChannel in
+                guard let self = self,
+                      let idx = self.items.firstIndex(where: { $0.videoId == videoId }) else { return }
+                if let t = fetchedTitle, !t.isEmpty { self.items[idx].title = t }
+                if let c = fetchedChannel, !c.isEmpty, self.items[idx].channel.isEmpty { self.items[idx].channel = c }
+                self.save()
+                self.delegate?.queueDidUpdate()
+            }
+        }
+    }
+
+    /// Fetches title and channel from YouTube oEmbed API as a fallback.
+    private func fetchMetadata(for videoId: String, completion: @escaping (String?, String?) -> Void) {
+        let urlStr = "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=\(videoId)&format=json"
+        guard let url = URL(string: urlStr) else { completion(nil, nil); return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                DispatchQueue.main.async { completion(nil, nil) }
+                return
+            }
+            let title = json["title"] as? String
+            let channel = json["author_name"] as? String
+            DispatchQueue.main.async { completion(title, channel) }
+        }.resume()
     }
 
     func removeItem(at index: Int) {
