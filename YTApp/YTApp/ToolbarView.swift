@@ -100,8 +100,12 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         playStack.spacing = 2
         playStack.translatesAutoresizingMaskIntoConstraints = false
 
+        // Quick rate buttons
+        let rate1x = makeQuickRateButton(title: "1×", rate: 1.0)
+        let rate2x = makeQuickRateButton(title: "2×", rate: 2.0)
+
         // Rate group
-        let speedStack = NSStackView(views: [rateLabel, ratePill])
+        let speedStack = NSStackView(views: [rateLabel, ratePill, rate1x, rate2x])
         speedStack.orientation = .horizontal
         speedStack.spacing = 4
         speedStack.alignment = .centerY
@@ -136,6 +140,27 @@ class ToolbarView: NSView, NSTextFieldDelegate {
             hairline.bottomAnchor.constraint(equalTo: bottomAnchor),
             hairline.heightAnchor.constraint(equalToConstant: 0.5),
         ])
+    }
+
+    private func makeQuickRateButton(title: String, rate: Float) -> NSButton {
+        let btn = NSButton(title: title, target: self, action: #selector(quickRateTapped(_:)))
+        btn.bezelStyle = .recessed
+        btn.isBordered = false
+        btn.font = .monospacedDigitSystemFont(ofSize: 10, weight: .medium)
+        btn.contentTintColor = .secondaryLabelColor
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.widthAnchor.constraint(equalToConstant: 24).isActive = true
+        btn.tag = Int(rate * 100)
+        btn.wantsLayer = true
+        btn.layer?.cornerRadius = 4
+        return btn
+    }
+
+    @objc private func quickRateTapped(_ sender: NSButton) {
+        let rate = Float(sender.tag) / 100.0
+        currentRate = rate
+        rateField.stringValue = formatRate(rate)
+        delegate?.toolbar(self, didChangePlaybackRate: rate)
     }
 
     private func makeDot() -> NSView {
