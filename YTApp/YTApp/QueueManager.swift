@@ -1,4 +1,5 @@
 import Foundation
+import Cocoa
 
 struct QueueItem: Codable, Identifiable, Equatable {
     let id: String  // UUID
@@ -6,9 +7,16 @@ struct QueueItem: Codable, Identifiable, Equatable {
     var title: String
     var channel: String
     var thumbnailURL: URL?
+    var duration: String      // e.g. "12:34"
+    var viewCount: String     // e.g. "1.2M views"
+    var publishedText: String // e.g. "2 days ago"
 
     var watchURL: URL {
         URL(string: "https://www.youtube.com/watch?v=\(videoId)")!
+    }
+
+    static func == (lhs: QueueItem, rhs: QueueItem) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
@@ -46,16 +54,24 @@ class QueueManager {
 
     // MARK: - Mutating
 
-    func addItem(videoId: String, title: String, channel: String = "") {
+    func addItem(videoId: String, title: String, channel: String = "",
+                 duration: String = "", viewCount: String = "", publishedText: String = "",
+                 thumbnailURL: String? = nil) {
         // Don't add duplicates
         if items.contains(where: { $0.videoId == videoId }) { return }
+
+        let thumbURL = thumbnailURL.flatMap { URL(string: $0) }
+            ?? URL(string: "https://i.ytimg.com/vi/\(videoId)/mqdefault.jpg")
 
         let item = QueueItem(
             id: UUID().uuidString,
             videoId: videoId,
             title: title.isEmpty ? videoId : title,
             channel: channel,
-            thumbnailURL: URL(string: "https://i.ytimg.com/vi/\(videoId)/mqdefault.jpg")
+            thumbnailURL: thumbURL,
+            duration: duration,
+            viewCount: viewCount,
+            publishedText: publishedText
         )
         items.append(item)
         save()
@@ -131,5 +147,33 @@ class QueueManager {
         }
         currentIndex = UserDefaults.standard.integer(forKey: saveKey + "Index")
         if currentIndex >= items.count { currentIndex = -1 }
+    }
+}
+
+// MARK: - Thumbnail Cache
+
+class ThumbnailCache {
+    static let shared = ThumbnailCache()
+    private var cache = NSCache<NSString, NSImage>()
+    private var inFlight = Set<String>()
+
+    func image(for url: URL, completion: @escaping (NSImage?) -> Void) {
+        let key = url.absoluteString as NSString
+        if let cached = cache.object(forKey: key) {
+            completion(cached)
+            return
+        }
+        guard !inFlight.contains(url.absoluteString) else { return }
+        inFlight.insert(url.absoluteString)
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            self?.inFlight.remove(url.absoluteString)
+            guard let data = data, let image = NSImage(data: data) else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            self?.cache.setObject(image, forKey: key)
+            DispatchQueue.main.async { completion(image) }
+        }.resume()
     }
 }

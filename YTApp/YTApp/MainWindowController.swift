@@ -59,6 +59,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "theaterChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "consoleLog")
         tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "newTab")
         QueueManager.shared.delegate = self
         toolbar.updatePlaybackRate(Settings.playbackRate)
 
@@ -436,9 +437,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
 
         if URLRouter.isAllowed(url) {
-            // Cmd+click or middle-click → new tab
+            // Cmd+click, middle-click, or three-finger tap → new tab
             if navigationAction.modifierFlags.contains(.command) ||
-                navigationAction.buttonNumber == 1 {
+                navigationAction.buttonNumber == 1 ||
+                navigationAction.buttonNumber == 2 {
                 decisionHandler(.cancel)
                 tabManager.addTab(url: url)
                 return
@@ -558,6 +560,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "newTab" {
+            if let urlString = message.body as? String, let url = URL(string: urlString) {
+                tabManager.addTab(url: url)
+            }
+            return
+        }
+
         if message.name == "consoleLog" {
             if let text = message.body as? String {
                 jsConsoleController?.appendSystemLog(text)
@@ -572,7 +581,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                let videoId = json["videoId"] as? String {
                 let title = json["title"] as? String ?? ""
                 let channel = json["channel"] as? String ?? ""
-                QueueManager.shared.addItem(videoId: videoId, title: title, channel: channel)
+                let duration = json["duration"] as? String ?? ""
+                let viewCount = json["viewCount"] as? String ?? ""
+                let publishedText = json["publishedText"] as? String ?? ""
+                let thumbnail = json["thumbnail"] as? String
+                QueueManager.shared.addItem(
+                    videoId: videoId, title: title, channel: channel,
+                    duration: duration, viewCount: viewCount, publishedText: publishedText,
+                    thumbnailURL: thumbnail
+                )
                 // Auto-show queue sidebar when adding
                 if !isQueueVisible { toggleQueue() }
             }

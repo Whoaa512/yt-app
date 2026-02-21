@@ -27,6 +27,7 @@
 		AA000018 /* JSConsoleWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000020; };
 		AA000019 /* TheaterMode.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000021; };
 		AA000020 /* QueueInterceptor.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000022; };
+		AA000021 /* AuxClickNewTab.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000023; };
 		AA000021 /* QueueManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000023; };
 		AA000022 /* QueueSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000024; };
 /* End PBXBuildFile section */
@@ -54,6 +55,7 @@
 		BB000020 /* JSConsoleWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSConsoleWindowController.swift; sourceTree = "<group>"; };
 		BB000021 /* TheaterMode.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = TheaterMode.js; sourceTree = "<group>"; };
 		BB000022 /* QueueInterceptor.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = QueueInterceptor.js; sourceTree = "<group>"; };
+		BB000023 /* AuxClickNewTab.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = AuxClickNewTab.js; sourceTree = "<group>"; };
 		BB000023 /* QueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueManager.swift; sourceTree = "<group>"; };
 		BB000024 /* QueueSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSidebarView.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -114,6 +116,7 @@
 				BB000019 /* URLObserver.js */,
 				BB000021 /* TheaterMode.js */,
 				BB000022 /* QueueInterceptor.js */,
+				BB000023 /* AuxClickNewTab.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -193,6 +196,7 @@
 				AA000017 /* URLObserver.js in Resources */,
 				AA000019 /* TheaterMode.js in Resources */,
 				AA000020 /* QueueInterceptor.js in Resources */,
+				AA000021 /* AuxClickNewTab.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
