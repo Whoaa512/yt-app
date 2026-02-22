@@ -230,14 +230,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         viewMenu.addItem(nextTabItem)
         let nextTabItem2 = NSMenuItem(title: "Next Tab", action: #selector(nextTab), keyEquivalent: "\t")
         nextTabItem2.keyEquivalentModifierMask = [.control]
-        nextTabItem2.isAlternate = true
+        nextTabItem2.isHidden = true
         viewMenu.addItem(nextTabItem2)
         let prevTabItem = NSMenuItem(title: "Previous Tab", action: #selector(prevTab), keyEquivalent: "[")
         prevTabItem.keyEquivalentModifierMask = [.command, .shift]
         viewMenu.addItem(prevTabItem)
         let prevTabItem2 = NSMenuItem(title: "Previous Tab", action: #selector(prevTab), keyEquivalent: "\u{0019}")
         prevTabItem2.keyEquivalentModifierMask = [.control, .shift]
-        prevTabItem2.isAlternate = true
+        prevTabItem2.isHidden = true
         viewMenu.addItem(prevTabItem2)
         viewMenu.addItem(.separator())
         let backItem = NSMenuItem(title: "Back", action: #selector(goBack), keyEquivalent: "[")
@@ -390,7 +390,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for (i, tab) in tabManager.tabs.enumerated() {
-            let button = TabBarButton(title: tab.title, index: i, isSuspended: tab.isSuspended, isSelected: i == tabManager.selectedIndex)
+            let button = TabBarButton(title: tab.title, index: i, isSuspended: tab.isSuspended, isSelected: i == tabManager.selectedIndex, isPlaying: tab.isPlayingMedia)
             button.target = self
             button.action = #selector(tabButtonClicked(_:))
             button.closeTarget = self
@@ -699,6 +699,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let wasPlaying = tab.isPlayingMedia
         tab.isPlayingMedia = !paused && !ended
 
+        if tab.isPlayingMedia != wasPlaying {
+            rebuildTabBar()
+        }
+
         // If this tab just started playing, pause all other tabs
         if tab.isPlayingMedia && !wasPlaying {
             for other in tabManager.tabs where other.id != tab.id && other.isPlayingMedia {
@@ -988,17 +992,26 @@ class TabBarButton: NSView {
         }
     }
 
-    init(title: String, index: Int, isSuspended: Bool, isSelected: Bool) {
+    init(title: String, index: Int, isSuspended: Bool, isSelected: Bool, isPlaying: Bool) {
         self.isSelected = isSelected
         super.init(frame: .zero)
 
         wantsLayer = true
-        layer?.backgroundColor = isSelected
-            ? NSColor.controlAccentColor.withAlphaComponent(0.2).cgColor
-            : NSColor.clear.cgColor
+        if isSelected && isPlaying {
+            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.3).cgColor
+        } else if isSelected {
+            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.2).cgColor
+        } else if isPlaying {
+            layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.15).cgColor
+        } else {
+            layer?.backgroundColor = NSColor.clear.cgColor
+        }
         layer?.cornerRadius = 4
 
-        titleLabel.stringValue = isSuspended ? "💤 \(title)" : title
+        var prefix = ""
+        if isSuspended { prefix = "💤 " }
+        else if isPlaying { prefix = "🔊 " }
+        titleLabel.stringValue = prefix + title
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.alphaValue = isSuspended ? 0.5 : 1.0
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
