@@ -51,6 +51,20 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject LinkHints.js
+        if let jsURL = Bundle.main.url(forResource: "LinkHints", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
+        // Inject ElementPicker.js
+        if let jsURL = Bundle.main.url(forResource: "ElementPicker", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject QueueInterceptor.js at document start (capture phase needs early registration)
         if let jsURL = Bundle.main.url(forResource: "QueueInterceptor", withExtension: "js"),
            let jsSource = try? String(contentsOf: jsURL) {

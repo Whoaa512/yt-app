@@ -30,6 +30,11 @@
 		AA000021 /* AuxClickNewTab.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000023; };
 		AA000021 /* QueueManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000023; };
 		AA000022 /* QueueSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000024; };
+		AA000023 /* LinkHints.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000025; };
+		AA000024 /* ElementPicker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000026; };
+		AA000025 /* KeyboardShortcutHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000027; };
+		AA000026 /* HelpModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000028; };
+		AA000027 /* CustomMacroManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000029; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +63,11 @@
 		BB000023 /* AuxClickNewTab.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = AuxClickNewTab.js; sourceTree = "<group>"; };
 		BB000023 /* QueueManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueManager.swift; sourceTree = "<group>"; };
 		BB000024 /* QueueSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueSidebarView.swift; sourceTree = "<group>"; };
+		BB000025 /* LinkHints.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = LinkHints.js; sourceTree = "<group>"; };
+		BB000026 /* ElementPicker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = ElementPicker.js; sourceTree = "<group>"; };
+		BB000027 /* KeyboardShortcutHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutHandler.swift; sourceTree = "<group>"; };
+		BB000028 /* HelpModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpModalViewController.swift; sourceTree = "<group>"; };
+		BB000029 /* CustomMacroManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMacroManager.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -99,6 +109,9 @@
 				BB000020 /* JSConsoleWindowController.swift */,
 				BB000023 /* QueueManager.swift */,
 				BB000024 /* QueueSidebarView.swift */,
+				BB000027 /* KeyboardShortcutHandler.swift */,
+				BB000028 /* HelpModalViewController.swift */,
+				BB000029 /* CustomMacroManager.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -117,6 +130,8 @@
 				BB000021 /* TheaterMode.js */,
 				BB000022 /* QueueInterceptor.js */,
 				BB000023 /* AuxClickNewTab.js */,
+				BB000025 /* LinkHints.js */,
+				BB000026 /* ElementPicker.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -197,6 +212,8 @@
 				AA000019 /* TheaterMode.js in Resources */,
 				AA000020 /* QueueInterceptor.js in Resources */,
 				AA000021 /* AuxClickNewTab.js in Resources */,
+				AA000023 /* LinkHints.js in Resources */,
+				AA000024 /* ElementPicker.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -222,6 +239,9 @@
 				AA000018 /* JSConsoleWindowController.swift in Sources */,
 				AA000021 /* QueueManager.swift in Sources */,
 				AA000022 /* QueueSidebarView.swift in Sources */,
+				AA000025 /* KeyboardShortcutHandler.swift in Sources */,
+				AA000026 /* HelpModalViewController.swift in Sources */,
+				AA000027 /* CustomMacroManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

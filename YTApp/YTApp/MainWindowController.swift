@@ -3,7 +3,8 @@ import WebKit
 
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
-    HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate {
+    HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
+    KeyboardShortcutDelegate, HelpModalDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -11,6 +12,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private let tabBar = NSSegmentedControl()
     private let webViewContainer = NSView()
     private var tabBarScrollView: NSScrollView!
+    private let keyboardHandler = KeyboardShortcutHandler()
+    private var helpModal: HelpModalViewController?
 
     // Custom tab bar
     private let tabStackView = NSStackView()
@@ -60,7 +63,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "consoleLog")
         tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
         tabManager.sharedConfiguration.userContentController.add(self, name: "newTab")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "elementPicked")
         QueueManager.shared.delegate = self
+        keyboardHandler.delegate = self
+        keyboardHandler.start()
         toolbar.updatePlaybackRate(Settings.playbackRate)
 
         // Ensure theater cookie is set before any tabs load
@@ -567,6 +573,16 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             return
         }
 
+        if message.name == "elementPicked" {
+            if let selector = message.body as? String {
+                // Re-show help modal with the picked selector
+                DispatchQueue.main.async { [weak self] in
+                    self?.showHelpWithPickedElement(selector)
+                }
+            }
+            return
+        }
+
         if message.name == "consoleLog" {
             if let text = message.body as? String {
                 jsConsoleController?.appendSystemLog(text)
@@ -746,6 +762,66 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func windowWillClose(_ notification: Notification) {
         saveWindowState()
+    }
+
+    // MARK: - KeyboardShortcutDelegate
+
+    func shortcutNewTab() { newTab() }
+    func shortcutCloseTab() { closeCurrentTab() }
+    func shortcutNextTab() { nextTab() }
+    func shortcutPrevTab() { prevTab() }
+    func shortcutFocusAddressBar() { focusAddressBar() }
+    func shortcutGoBack() { goBack() }
+    func shortcutGoForward() { goForward() }
+    func shortcutRefresh() { tabManager.activeTab?.webView?.reload() }
+    func shortcutPlayPause() { toolbar.delegate?.toolbarPlayPause(toolbar) }
+    func shortcutToggleQueue() { toggleQueue() }
+    func shortcutShowHistory() { showHistory() }
+
+    func shortcutShowHelp() {
+        let vc = HelpModalViewController()
+        vc.helpDelegate = self
+        self.helpModal = vc
+        presentAsSheet(vc)
+    }
+
+    func shortcutShowLinkHints(newTab: Bool) {
+        let arg = newTab ? "true" : "false"
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytShowLinkHints && window.__ytShowLinkHints(\(arg))")
+    }
+
+    func shortcutScrollTop() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollTo({top:0,behavior:'smooth'})")
+    }
+
+    func shortcutScrollBottom() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})")
+    }
+
+    func shortcutStartElementPicker() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytStartElementPicker && window.__ytStartElementPicker()")
+    }
+
+    func shortcutActiveWebView() -> WKWebView? { tabManager.activeTab?.webView }
+    func shortcutActiveURL() -> String? { tabManager.activeTab?.webView?.url?.absoluteString }
+
+    // MARK: - HelpModalDelegate
+
+    func helpModalDidRequestElementPicker() {
+        // Dismiss sheet, start picker
+        helpModal?.dismiss(nil)
+        shortcutStartElementPicker()
+    }
+
+    private func showHelpWithPickedElement(_ selector: String) {
+        let vc = HelpModalViewController()
+        vc.helpDelegate = self
+        self.helpModal = vc
+        presentAsSheet(vc)
+        // Fill in the picked selector after a tiny delay so the view loads
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            vc.didPickElement(selector: selector)
+        }
     }
 
     // MARK: - Helpers
