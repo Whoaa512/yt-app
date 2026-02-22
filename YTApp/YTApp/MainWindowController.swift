@@ -4,7 +4,7 @@ import WebKit
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
-    KeyboardShortcutDelegate, HelpModalDelegate {
+    KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -64,9 +64,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
         tabManager.sharedConfiguration.userContentController.add(self, name: "newTab")
         tabManager.sharedConfiguration.userContentController.add(self, name: "elementPicked")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
         keyboardHandler.start()
+
+        // Plugin system
+        PluginManager.shared.delegate = self
+        PluginManager.shared.ensurePluginDirectories()
+        PluginManager.shared.discoverAndLoad()
+        tabManager.pluginManager = PluginManager.shared
+        PluginManager.shared.startWatching()
         toolbar.updatePlaybackRate(Settings.playbackRate)
 
         // Ensure theater cookie is set before any tabs load
@@ -253,6 +261,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let devMenuItem = NSMenuItem()
         devMenuItem.submenu = devMenu
         mainMenu.addItem(devMenuItem)
+
+        let pluginMenu = NSMenu(title: "Plugins")
+        pluginMenu.addItem(withTitle: "Manage Plugins…", action: #selector(showPluginSettings), keyEquivalent: ",")
+        let openPluginDir = NSMenuItem(title: "Open Plugin Folder", action: #selector(openPluginFolder), keyEquivalent: "")
+        pluginMenu.addItem(openPluginDir)
+        pluginMenu.addItem(.separator())
+        let reloadPlugins = NSMenuItem(title: "Reload Plugins", action: #selector(reloadAllPlugins), keyEquivalent: "r")
+        reloadPlugins.keyEquivalentModifierMask = [.command, .shift]
+        pluginMenu.addItem(reloadPlugins)
+        let pluginMenuItem = NSMenuItem()
+        pluginMenuItem.submenu = pluginMenu
+        mainMenu.addItem(pluginMenuItem)
 
         let historyMenu = NSMenu(title: "History")
         historyMenu.addItem(withTitle: "Show History", action: #selector(showHistory), keyEquivalent: "y")
@@ -575,11 +595,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         if message.name == "elementPicked" {
             if let selector = message.body as? String {
-                // Re-show help modal with the picked selector
                 DispatchQueue.main.async { [weak self] in
                     self?.showHelpWithPickedElement(selector)
                 }
             }
+            return
+        }
+
+        if message.name == "pluginBridge" {
+            PluginManager.shared.handleMessage(message.body, webView: message.webView ?? tabManager.activeTab?.webView ?? WKWebView())
             return
         }
 
@@ -638,6 +662,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 addressBar.setURL(url)
                 window?.title = tab.title
             }
+            // Dispatch navigate event to plugins
+            PluginManager.shared.dispatchEvent("navigate", data: [
+                "url": url.absoluteString,
+                "title": tab.title,
+            ], webView: webView)
             // Record history for watch pages
             if url.absoluteString.contains("youtube.com/watch") {
                 // Re-apply playback rate on SPA navigation
@@ -660,6 +689,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let paused = json["paused"] as? Bool ?? true
         let ended = json["ended"] as? Bool ?? false
         tab.isPlayingMedia = !paused && !ended
+
+        // Dispatch videoState event to plugins
+        PluginManager.shared.dispatchEvent("videoState", data: json, webView: webView)
+        if ended {
+            PluginManager.shared.dispatchEvent("videoEnd", data: json, webView: webView)
+        }
 
         if tab.id == tabManager.activeTab?.id {
             let title = json["title"] as? String ?? ""
@@ -762,6 +797,79 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func windowWillClose(_ notification: Notification) {
         saveWindowState()
+    }
+
+    // MARK: - PluginManagerDelegate
+
+    func pluginManager(_ manager: PluginManager, didReceiveNotification message: String, type: String) {
+        // Show as JS toast via the active webview
+        let escaped = message.replacingOccurrences(of: "'", with: "\\'")
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.YTApp && window.YTApp.ui.toast('\(escaped)')")
+    }
+
+    func pluginManager(_ manager: PluginManager, openTab url: URL) {
+        tabManager.addTab(url: url)
+    }
+
+    func pluginManager(_ manager: PluginManager, navigate url: URL) {
+        tabManager.activeTab?.webView?.load(URLRequest(url: url))
+    }
+
+    func pluginManager(_ manager: PluginManager, queueAdd videoId: String, title: String, channel: String, duration: String) {
+        QueueManager.shared.addItem(videoId: videoId, title: title, channel: channel, duration: duration, viewCount: "", publishedText: "", thumbnailURL: nil)
+        if !isQueueVisible { toggleQueue() }
+    }
+
+    func pluginManagerQueueClear(_ manager: PluginManager) {
+        QueueManager.shared.clear()
+        queueSidebar?.reload()
+    }
+
+    func pluginManagerQueuePlayNext(_ manager: PluginManager) {
+        handleVideoEnded()
+    }
+
+    func pluginManager(_ manager: PluginManager, setRate rate: Float) {
+        Settings.playbackRate = rate
+        toolbar.updatePlaybackRate(rate)
+        tabManager.activeTab?.webView?.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
+    }
+
+    func pluginManagerPluginsDidReload(_ manager: PluginManager) {
+        // Re-inject plugin scripts into active tab
+        if let wv = tabManager.activeTab?.webView {
+            for script in manager.userScripts() {
+                wv.evaluateJavaScript(script.source)
+            }
+            PluginManager.shared.dispatchEvent("reload", data: [:], webView: wv)
+        }
+    }
+
+    // MARK: - PluginSettingsDelegate
+
+    func pluginSettingsDidChange() {
+        pluginManagerPluginsDidReload(PluginManager.shared)
+    }
+
+    func pluginSettingsOpenPluginDir() {
+        let dir = PluginManager.pluginDirectories.first!
+        NSWorkspace.shared.open(dir)
+    }
+
+    @objc func openPluginFolder() {
+        let dir = PluginManager.pluginDirectories.first!
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(dir)
+    }
+
+    @objc func reloadAllPlugins() {
+        PluginManager.shared.reload()
+    }
+
+    @objc func showPluginSettings() {
+        let vc = PluginSettingsViewController()
+        vc.settingsDelegate = self
+        presentAsSheet(vc)
     }
 
     // MARK: - KeyboardShortcutDelegate

@@ -1,0 +1,29 @@
+/* Custom CSS plugin — edit this file to restyle YouTube.
+   Changes are picked up automatically on page reload.
+
+   Examples:
+*/
+
+/* OLED black background */
+/*
+html, body, ytd-app, #content {
+    background: #000 !important;
+}
+*/
+
+/* Hide comments */
+/*
+#comments, ytd-comments {
+    display: none !important;
+}
+*/
+
+/* Compact thumbnails */
+/*
+ytd-rich-item-renderer {
+    margin: 0 !important;
+}
+ytd-rich-grid-row {
+    --ytd-rich-grid-items-per-row: 6 !important;
+}
+*/

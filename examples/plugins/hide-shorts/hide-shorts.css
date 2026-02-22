@@ -1,0 +1,12 @@
+/* Hide Shorts shelf on home page */
+ytd-rich-shelf-renderer[is-shorts],
+ytd-reel-shelf-renderer,
+/* Hide Shorts tab on channel pages */
+yt-tab-shape[tab-title="Shorts"],
+tp-yt-paper-tab:has(> .tab-content [title="Shorts"]),
+/* Hide Shorts in search results */
+ytd-reel-shelf-renderer,
+/* Hide Shorts in sidebar suggestions */
+ytd-compact-video-renderer:has(a[href*="/shorts/"]) {
+    display: none !important;
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Custom CSS",
+  "version": "1.0.0",
+  "description": "User stylesheet — edit style.css to customize YouTube's appearance",
+  "author": "YTApp",
+  "styles": ["style.css"]
+}

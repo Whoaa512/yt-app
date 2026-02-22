@@ -1,0 +1,12 @@
+{
+  "name": "Hide Shorts",
+  "version": "1.0.0",
+  "description": "Removes Shorts shelves and tabs from YouTube",
+  "author": "YTApp",
+  "content_scripts": [
+    {
+      "css": ["hide-shorts.css"],
+      "inject_at": "document_end"
+    }
+  ]
+}

@@ -140,6 +140,19 @@ class KeyboardShortcutHandler {
             return true
         }
 
+        // Check plugin JS shortcuts (async, but we need sync here — fire and don't block)
+        // Plugin shortcuts are checked in JS first via the link hints pattern
+        if let wv = delegate?.shortcutActiveWebView() {
+            var pluginHandled = false
+            let sem = DispatchSemaphore(value: 0)
+            wv.evaluateJavaScript("window.__ytAppPluginShortcut && window.__ytAppPluginShortcut('\(ch.replacingOccurrences(of: "'", with: "\\'"))')") { result, _ in
+                pluginHandled = (result as? Bool) ?? false
+                sem.signal()
+            }
+            _ = sem.wait(timeout: .now() + 0.05)
+            if pluginHandled { return true }
+        }
+
         // Built-in single-key shortcuts
         switch ch {
         case "?": delegate?.shortcutShowHelp(); return true

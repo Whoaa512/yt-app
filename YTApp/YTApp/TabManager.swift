@@ -12,6 +12,7 @@ protocol TabManagerDelegate: AnyObject {
 
 class TabManager {
     weak var delegate: TabManagerDelegate?
+    var pluginManager: PluginManager?
     private(set) var tabs: [Tab] = []
     private(set) var selectedIndex: Int = -1
     private var suspensionTimer: Timer?
@@ -74,6 +75,10 @@ class TabManager {
 
         // Inject TheaterMode.js at document start (before YouTube reads prefs)
         updateTheaterModeScript(on: config.userContentController)
+
+        // Plugin scripts (YTAppAPI.js + enabled plugin content scripts)
+        // Note: pluginManager may not be set yet during lazy init,
+        // so plugins are also injected in ensureWebView.
 
         // PiP support
         config.preferences.isElementFullscreenEnabled = true
@@ -189,9 +194,13 @@ class TabManager {
         let navDelegate = delegate?.tabManagerNavigationDelegate(self)
         let uiDelegate = delegate?.tabManagerUIDelegate(self)
         _ = tab.createWebView(configuration: sharedConfiguration, navigationDelegate: navDelegate, uiDelegate: uiDelegate)
-        // Add mediaBridge message handler
-        tab.webView?.configuration.userContentController.removeScriptMessageHandler(forName: "mediaBridge")
-        // Message handler is added by the WebViewController
+
+        // Inject plugin scripts into new webviews
+        if let pm = pluginManager {
+            for script in pm.userScripts() {
+                tab.webView?.configuration.userContentController.addUserScript(script)
+            }
+        }
     }
 
     func updateTab(_ tab: Tab) {

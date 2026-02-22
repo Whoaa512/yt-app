@@ -35,6 +35,10 @@
 		AA000025 /* KeyboardShortcutHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000027; };
 		AA000026 /* HelpModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000028; };
 		AA000027 /* CustomMacroManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000029; };
+		AA000028 /* YTAppAPI.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000030; };
+		AA000029 /* PluginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000031; };
+		AA000030 /* PluginManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000032; };
+		AA000031 /* PluginSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000033; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +72,10 @@
 		BB000027 /* KeyboardShortcutHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutHandler.swift; sourceTree = "<group>"; };
 		BB000028 /* HelpModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpModalViewController.swift; sourceTree = "<group>"; };
 		BB000029 /* CustomMacroManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomMacroManager.swift; sourceTree = "<group>"; };
+		BB000030 /* YTAppAPI.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = YTAppAPI.js; sourceTree = "<group>"; };
+		BB000031 /* PluginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManager.swift; sourceTree = "<group>"; };
+		BB000032 /* PluginManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManifest.swift; sourceTree = "<group>"; };
+		BB000033 /* PluginSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettingsViewController.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -112,6 +120,9 @@
 				BB000027 /* KeyboardShortcutHandler.swift */,
 				BB000028 /* HelpModalViewController.swift */,
 				BB000029 /* CustomMacroManager.swift */,
+				BB000031 /* PluginManager.swift */,
+				BB000032 /* PluginManifest.swift */,
+				BB000033 /* PluginSettingsViewController.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -132,6 +143,7 @@
 				BB000023 /* AuxClickNewTab.js */,
 				BB000025 /* LinkHints.js */,
 				BB000026 /* ElementPicker.js */,
+				BB000030 /* YTAppAPI.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -214,6 +226,7 @@
 				AA000021 /* AuxClickNewTab.js in Resources */,
 				AA000023 /* LinkHints.js in Resources */,
 				AA000024 /* ElementPicker.js in Resources */,
+				AA000028 /* YTAppAPI.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,6 +255,9 @@
 				AA000025 /* KeyboardShortcutHandler.swift in Sources */,
 				AA000026 /* HelpModalViewController.swift in Sources */,
 				AA000027 /* CustomMacroManager.swift in Sources */,
+				AA000029 /* PluginManager.swift in Sources */,
+				AA000030 /* PluginManifest.swift in Sources */,
+				AA000031 /* PluginSettingsViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

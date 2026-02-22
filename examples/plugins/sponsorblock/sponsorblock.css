@@ -1,0 +1,9 @@
+/* SponsorBlock progress bar segment styling */
+.__sb-segment {
+    border-radius: 1px;
+    transition: opacity 0.2s;
+}
+
+.ytp-progress-bar:hover .__sb-segment {
+    opacity: 0.8;
+}

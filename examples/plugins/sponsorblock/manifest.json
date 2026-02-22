@@ -1,0 +1,36 @@
+{
+  "name": "SponsorBlock",
+  "version": "1.0.0",
+  "description": "Skip sponsored segments using the SponsorBlock API",
+  "author": "YTApp",
+  "content_scripts": [
+    {
+      "js": ["sponsorblock.js"],
+      "css": ["sponsorblock.css"],
+      "inject_at": "document_end",
+      "url_patterns": ["*youtube.com*"]
+    }
+  ],
+  "permissions": ["videoState", "navigate"],
+  "shortcuts": {
+    "b": {
+      "action": "js",
+      "value": "window.__sbToggle && window.__sbToggle()",
+      "label": "Toggle SponsorBlock"
+    }
+  },
+  "settings": [
+    {
+      "key": "autoSkip",
+      "label": "Auto-skip sponsors",
+      "type": "bool",
+      "default": "true"
+    },
+    {
+      "key": "categories",
+      "label": "Categories to skip",
+      "type": "string",
+      "default": "sponsor,selfpromo,interaction"
+    }
+  ]
+}
