@@ -228,17 +228,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let nextTabItem = NSMenuItem(title: "Next Tab", action: #selector(nextTab), keyEquivalent: "]")
         nextTabItem.keyEquivalentModifierMask = [.command, .shift]
         viewMenu.addItem(nextTabItem)
-        let nextTabItem2 = NSMenuItem(title: "Next Tab", action: #selector(nextTab), keyEquivalent: "\t")
-        nextTabItem2.keyEquivalentModifierMask = [.control]
-        nextTabItem2.isHidden = true
-        viewMenu.addItem(nextTabItem2)
+
         let prevTabItem = NSMenuItem(title: "Previous Tab", action: #selector(prevTab), keyEquivalent: "[")
         prevTabItem.keyEquivalentModifierMask = [.command, .shift]
         viewMenu.addItem(prevTabItem)
-        let prevTabItem2 = NSMenuItem(title: "Previous Tab", action: #selector(prevTab), keyEquivalent: "\u{0019}")
-        prevTabItem2.keyEquivalentModifierMask = [.control, .shift]
-        prevTabItem2.isHidden = true
-        viewMenu.addItem(prevTabItem2)
+
         viewMenu.addItem(.separator())
         let backItem = NSMenuItem(title: "Back", action: #selector(goBack), keyEquivalent: "[")
         backItem.keyEquivalentModifierMask = [.command]

@@ -78,8 +78,19 @@ class KeyboardShortcutHandler {
 
     /// Returns true if the event was consumed.
     private func handleKeyDown(_ event: NSEvent) -> Bool {
-        // Don't intercept when modifier keys (⌘, ⌃, ⌥) are held — those go to menus
         let mods = event.modifierFlags.intersection([.command, .control, .option])
+
+        // Ctrl+Tab / Ctrl+Shift+Tab for tab switching
+        if mods.contains(.control) && event.keyCode == 48 {
+            if event.modifierFlags.contains(.shift) {
+                delegate?.shortcutPrevTab()
+            } else {
+                delegate?.shortcutNextTab()
+            }
+            return true
+        }
+
+        // Don't intercept other modifier key combos — those go to menus
         if !mods.isEmpty { return false }
 
         // Don't intercept when a text field/input has focus
