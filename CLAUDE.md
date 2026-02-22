@@ -1,6 +1,6 @@
 # YTApp
 
-A native macOS YouTube wrapper built with Swift, AppKit, and WKWebView.
+Native macOS YouTube wrapper — Swift, AppKit, WKWebView. No storyboards.
 
 ## Build
 
@@ -8,80 +8,78 @@ A native macOS YouTube wrapper built with Swift, AppKit, and WKWebView.
 cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/code/yt-app/build build
 ```
 
-The app runs from `/Users/cjw/code/yt-app/build/Debug/YTApp.app`. **Do not** use default `xcodebuild` without `SYMROOT` — it builds to DerivedData and the user launches from `build/Debug/`.
+**Important**: Always use `SYMROOT=/Users/cjw/code/yt-app/build` — the app is launched from `build/Debug/YTApp.app`, not DerivedData.
 
-## Architecture
+## File Map
 
-- **No storyboards/xibs** — all UI is programmatic AppKit (NSWindow, NSView, NSStackView, etc.)
-- **Xcode project file** (`YTApp/YTApp.xcodeproj/project.pbxproj`) uses hand-written sequential IDs (AA/BB/CC/DD/EE/FF/GG prefixed). When adding files, continue the pattern (e.g. BB000020, AA000018).
-- **JS injection** — scripts in `YTApp/YTApp/JS/` are bundled as resources and injected into WKWebView via `WKUserScript`
+### Swift
+| File | Role |
+|------|------|
+| `MainWindowController.swift` | Window, layout, all WKWebView delegates, message handler dispatch |
+| `TabManager.swift` | Tab lifecycle, shared WKWebViewConfiguration, JS injection, suspension |
+| `Tab.swift` | Tab model (URL, title, webView, suspension state) |
+| `ToolbarView.swift` | Playback/nav toolbar with hover buttons, speed controls |
+| `AddressBarView.swift` | URL bar with back/forward |
+| `QueueManager.swift` | Queue model (singleton, UserDefaults persistence) + ThumbnailCache |
+| `QueueSidebarView.swift` | NSTableView sidebar with drag-to-reorder, thumbnails |
+| `HistoryManager.swift` | SQLite history |
+| `HistoryViewController.swift` | History panel UI |
+| `MediaKeyHandler.swift` | MPNowPlayingInfoCenter + remote commands |
+| `JSConsoleWindowController.swift` | Dev console for JS evaluation |
+| `Settings.swift` | UserDefaults wrapper (playback rate, theater mode, etc.) |
+| `URLRouter.swift` | Domain allowlist, external URL handling |
 
-## Key Files
+### JavaScript (`YTApp/YTApp/JS/`)
+| File | Injection | Role |
+|------|-----------|------|
+| `MediaBridge.js` | documentEnd | Polls video state → `mediaBridge` handler |
+| `URLObserver.js` | documentEnd | SPA navigation tracking → `urlChanged` handler |
+| `DurationExtractor.js` | evaluated on demand | Extracts video duration for history |
+| `QueueInterceptor.js` | documentStart | Hijacks "Add to queue" → `queueBridge` handler |
+| `TheaterMode.js` | documentStart | Persists `wide=1` cookie for theater mode |
 
-- `MainWindowController.swift` — main window, layout, tab/address bar/toolbar wiring, WKWebView delegates
-- `TabManager.swift` — tab lifecycle, shared WKWebViewConfiguration, suspension logic
-- `ToolbarView.swift` — centered playback/nav toolbar with custom hover buttons
-- `AddressBarView.swift` — URL bar with back/forward
-- `Tab.swift` — tab model (URL, title, webView, suspension state)
-- `MediaBridge.js` — polls video state, posts to Swift via messageHandler
-- `URLObserver.js` — hooks pushState/replaceState/yt-navigate-finish for SPA URL tracking
-- `DurationExtractor.js` — extracts video duration for history
+### Message Handlers (Swift ↔ JS bridge)
+| Handler | Direction | Purpose |
+|---------|-----------|---------|
+| `mediaBridge` | JS→Swift | Video playback state (paused, ended, time, title) |
+| `urlChanged` | JS→Swift | SPA URL changes for address bar + history |
+| `queueBridge` | JS→Swift | Intercepted queue additions with video metadata |
+| `consoleLog` | JS→Swift | Debug logging to JS console window |
+| `theaterChanged` | JS→Swift | Theater mode toggle state sync |
 
-## YouTube SPA Navigation
+## Adding Files
 
-YouTube is a Single Page App — clicking videos doesn't trigger WKNavigationDelegate. `URLObserver.js` intercepts `history.pushState`, `history.replaceState`, `popstate`, and YouTube's `yt-navigate-finish` event to keep the address bar and history in sync.
+### New JS injection
+1. Create `.js` in `YTApp/YTApp/JS/`
+2. pbxproj: add `BB______` (PBXFileReference) + `AA______` (PBXBuildFile)
+3. pbxproj: add to JS group (`EE000003`) + Resources build phase
+4. `TabManager.swift`: inject via `WKUserScript` in `sharedConfiguration`
+5. If it posts messages: register handler in `MainWindowController.windowDidLoad`, handle in `userContentController(_:didReceive:)`
 
-## Queue System
+### New Swift file
+1. Create `.swift` in `YTApp/YTApp/`
+2. pbxproj: add `BB______` (PBXFileReference) + `AA______` (PBXBuildFile)
+3. pbxproj: add to YTApp group (`EE000002`) + Sources build phase
 
-- `QueueInterceptor.js` intercepts YouTube's `yt-action` events (capture phase) to hijack "Add to queue"
-- `QueueManager.swift` is the singleton queue model, persisted to UserDefaults
-- `QueueSidebarView.swift` is an NSTableView-based sidebar with drag-to-reorder
-- `ThumbnailCache` (in QueueManager.swift) async-loads thumbnails with NSCache
-- oEmbed fallback (`youtube.com/oembed`) fetches title/channel when JS extraction fails
-- Queue sidebar toggled with Cmd+Shift+Q, auto-shown when a video is queued
+### Pbxproj IDs
+Sequential, prefixed: **AA** (build files), **BB** (file refs), **CC** (products), **DD** (frameworks phase), **EE** (groups), **FF** (build phases/project), **GG** (build configs). Check highest existing number and increment.
 
-## YouTube DOM Scraping Patterns
+## YouTube Gotchas
 
-YouTube's DOM is complex and changes frequently. Key lessons:
+**SPA navigation**: Clicking videos doesn't trigger WKNavigationDelegate. `URLObserver.js` hooks `pushState`, `replaceState`, `popstate`, and `yt-navigate-finish`.
 
-- **Context menus lose DOM context**: When user right-clicks → selects "Add to queue", the `yt-action` event fires *after* the popup menu closes. The original renderer element is no longer "active". Solution: track the last right-clicked renderer via `contextmenu` event listener in capture phase.
-- **Renderer elements**: Video metadata lives in `ytd-*-renderer` elements. Common selectors: `ytd-rich-item-renderer`, `ytd-compact-video-renderer`, `ytd-video-renderer`, `ytd-rich-grid-media`.
-- **Title**: `#video-title`, `yt-formatted-string#video-title`, or `aria-label` on the title link.
-- **Channel**: `ytd-channel-name #text` or `#channel-name a`.
-- **Duration**: `ytd-thumbnail-overlay-time-status-renderer span`.
-- **Metadata line**: `#metadata-line span` or `.inline-metadata-item` for views/date.
-- **Always have a fallback**: DOM extraction is brittle. Use YouTube oEmbed API (`/oembed?url=...&format=json`) as a server-side fallback for title and channel.
+**DOM scraping is brittle**: YouTube's markup changes. Key patterns:
+- Video metadata lives in `ytd-*-renderer` elements (`ytd-rich-item-renderer`, `ytd-compact-video-renderer`, `ytd-video-renderer`, `ytd-rich-grid-media`)
+- Title: `#video-title` or `aria-label` on title link
+- Channel: `ytd-channel-name #text` or `#channel-name a`
+- Duration: `ytd-thumbnail-overlay-time-status-renderer span`
+- Views/date: `#metadata-line span` or `.inline-metadata-item`
+- **Context menus lose DOM context** — the `yt-action` event fires after the popup closes. Track the renderer via `contextmenu` listener in capture phase.
+- **Always have a fallback**: oEmbed API (`/oembed?url=...&format=json`) for title/channel when DOM extraction fails.
 
-## Adding New JS Injections
+## Style
 
-1. Create the `.js` file in `YTApp/YTApp/JS/`
-2. Add `PBXFileReference` (BB prefix) and `PBXBuildFile` (AA prefix) to `project.pbxproj`
-3. Add file ref to the JS group (EE000003) and to the Resources build phase
-4. Inject in `TabManager.swift`'s `sharedConfiguration` lazy var via `WKUserScript`
-5. If it posts messages, register the handler in `MainWindowController.windowDidLoad` and handle in `userContentController(_:didReceive:)`
-
-## Adding New Swift Files
-
-1. Create the `.swift` file in `YTApp/YTApp/`
-2. Add `PBXFileReference` (BB prefix) and `PBXBuildFile` (AA prefix) to `project.pbxproj`
-3. Add file ref to the YTApp group (EE000002) and to the Sources build phase
-4. Next available IDs: check the highest BB/AA numbers in pbxproj and increment
-
-## Pbxproj ID Scheme
-
-| Prefix | Purpose                    | Example    |
-|--------|----------------------------|------------|
-| AA     | PBXBuildFile entries        | AA000022   |
-| BB     | PBXFileReference entries    | BB000024   |
-| CC     | Product reference           | CC000001   |
-| DD     | PBXFrameworksBuildPhase     | DD000001   |
-| EE     | PBXGroup entries            | EE000003   |
-| FF     | Build phases, project, configs | FF000011 |
-| GG     | XCBuildConfiguration        | GG000004   |
-
-## Style Notes
-
-- Prefer clean, minimal, modern UI — no heavy bezels, subtle hover states, smooth animations
-- Custom view subclasses over standard AppKit controls when needed for polish
-- Dark background (black/near-black) for WebView container to avoid white flash on load
-- NSTableView for lists that need reorder; NSStackView for static layouts
+- Minimal, modern — no heavy bezels, subtle hover states, smooth animations
+- Dark backgrounds (black/near-black) for WebView container — no white flash
+- NSTableView for reorderable lists; NSStackView for static layouts
+- Custom NSView subclasses over standard AppKit controls when needed for polish
