@@ -77,6 +77,10 @@ Sequential, prefixed: **AA** (build files), **BB** (file refs), **CC** (products
 - **Context menus lose DOM context** — the `yt-action` event fires after the popup closes. Track the renderer via `contextmenu` listener in capture phase.
 - **Always have a fallback**: oEmbed API (`/oembed?url=...&format=json`) for title/channel when DOM extraction fails.
 
+## Workflow
+
+- **Commit in logical chunks** as you go — don't wait until the end. Group related changes into a single commit with a descriptive message.
+
 ## Style
 
 - Minimal, modern — no heavy bezels, subtle hover states, smooth animations
