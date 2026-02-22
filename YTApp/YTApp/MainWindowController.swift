@@ -75,7 +75,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         PluginManager.shared.discoverAndLoad()
         tabManager.pluginManager = PluginManager.shared
         PluginManager.shared.startWatching()
-        toolbar.updatePlaybackRate(Settings.playbackRate)
+        toolbar.updatePlaybackRate(Settings.defaultPlaybackRate)
 
         // Ensure theater cookie is set before any tabs load
         tabManager.ensureTheaterCookie {
@@ -439,6 +439,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         displayWebView(for: tab)
         rebuildTabBar()
         window?.title = tab.title
+        toolbar.updatePlaybackRate(tab.playbackRate)
+        applyPlaybackRate(tab.playbackRate, to: tab)
     }
 
     func tabManager(_ manager: TabManager, didUpdateTab tab: Tab, at index: Int) {
@@ -505,8 +507,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
     }
 
+    private func applyPlaybackRate(_ rate: Float, to tab: Tab) {
+        guard let webView = tab.webView else { return }
+        webView.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
+    }
+
     private func applyPlaybackSettings(to webView: WKWebView) {
-        let rate = Settings.playbackRate
+        let tab = tabForWebView(webView)
+        let rate = tab?.playbackRate ?? Settings.defaultPlaybackRate
         let theater = Settings.theaterMode
 
         // Apply playback rate once video element exists
@@ -688,7 +696,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         let paused = json["paused"] as? Bool ?? true
         let ended = json["ended"] as? Bool ?? false
+        let wasPlaying = tab.isPlayingMedia
         tab.isPlayingMedia = !paused && !ended
+
+        // If this tab just started playing, pause all other tabs
+        if tab.isPlayingMedia && !wasPlaying {
+            for other in tabManager.tabs where other.id != tab.id && other.isPlayingMedia {
+                other.webView?.evaluateJavaScript("document.querySelector('video')?.pause()")
+            }
+        }
 
         // Dispatch videoState event to plugins
         PluginManager.shared.dispatchEvent("videoState", data: json, webView: webView)
@@ -771,8 +787,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float) {
-        Settings.playbackRate = rate
-        tabManager.activeTab?.webView?.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
+        if let tab = tabManager.activeTab {
+            tab.playbackRate = rate
+            applyPlaybackRate(rate, to: tab)
+        }
+    }
+
+    func toolbarResetSpeed(_ toolbar: ToolbarView) {
+        let rate = Settings.defaultPlaybackRate
+        if let tab = tabManager.activeTab {
+            tab.playbackRate = rate
+            applyPlaybackRate(rate, to: tab)
+        }
+        toolbar.updatePlaybackRate(rate)
     }
 
     // MARK: - AddressBarDelegate
@@ -830,9 +857,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func pluginManager(_ manager: PluginManager, setRate rate: Float) {
-        Settings.playbackRate = rate
+        if let tab = tabManager.activeTab {
+            tab.playbackRate = rate
+            applyPlaybackRate(rate, to: tab)
+        }
         toolbar.updatePlaybackRate(rate)
-        tabManager.activeTab?.webView?.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
     }
 
     func pluginManagerPluginsDidReload(_ manager: PluginManager) {

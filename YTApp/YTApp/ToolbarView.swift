@@ -8,6 +8,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbarPrevTrack(_ toolbar: ToolbarView)
     func toolbarNextTrack(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float)
+    func toolbarResetSpeed(_ toolbar: ToolbarView)
 }
 
 class ToolbarView: NSView, NSTextFieldDelegate {
@@ -100,12 +101,14 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         playStack.spacing = 2
         playStack.translatesAutoresizingMaskIntoConstraints = false
 
-        // Quick rate buttons
-        let rate1x = makeQuickRateButton(title: "1×", rate: 1.0)
-        let rate2x = makeQuickRateButton(title: "2×", rate: 2.0)
+        // Reset to default button
+        let resetBtn = makeQuickRateButton(title: "↺", rate: -1)
+        resetBtn.toolTip = "Reset to default speed"
+        resetBtn.target = self
+        resetBtn.action = #selector(resetSpeedTapped)
 
         // Rate group
-        let speedStack = NSStackView(views: [rateLabel, ratePill, rate1x, rate2x])
+        let speedStack = NSStackView(views: [rateLabel, ratePill, resetBtn])
         speedStack.orientation = .horizontal
         speedStack.spacing = 4
         speedStack.alignment = .centerY
@@ -161,6 +164,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         currentRate = rate
         rateField.stringValue = formatRate(rate)
         delegate?.toolbar(self, didChangePlaybackRate: rate)
+    }
+
+    @objc private func resetSpeedTapped() {
+        delegate?.toolbarResetSpeed(self)
     }
 
     private func makeDot() -> NSView {

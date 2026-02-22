@@ -21,6 +21,14 @@ struct Settings {
         set { defaults.set(newValue, forKey: "playbackRate") }
     }
 
+    static var defaultPlaybackRate: Float {
+        get {
+            let val = defaults.float(forKey: "defaultPlaybackRate")
+            return val > 0 ? val : 2.0
+        }
+        set { defaults.set(newValue, forKey: "defaultPlaybackRate") }
+    }
+
     static var theaterMode: Bool {
         get { defaults.bool(forKey: "theaterMode") }
         set { defaults.set(newValue, forKey: "theaterMode") }
