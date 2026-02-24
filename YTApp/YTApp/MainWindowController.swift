@@ -255,6 +255,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
 
+        let tabMenu = NSMenu(title: "Tab")
+        tabMenu.addItem(withTitle: "Suspend Tab", action: #selector(suspendCurrentTab), keyEquivalent: "")
+        tabMenu.addItem(withTitle: "Suspend Other Tabs", action: #selector(suspendOtherTabs), keyEquivalent: "")
+        tabMenu.addItem(withTitle: "Unsuspend All Tabs", action: #selector(unsuspendAllTabs), keyEquivalent: "")
+        let tabMenuItem = NSMenuItem()
+        tabMenuItem.submenu = tabMenu
+        mainMenu.addItem(tabMenuItem)
+
         let devMenu = NSMenu(title: "Develop")
         let jsConsoleItem = NSMenuItem(title: "JS Console", action: #selector(toggleJSConsole), keyEquivalent: "j")
         jsConsoleItem.keyEquivalentModifierMask = [.command, .option]
@@ -292,6 +300,36 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func closeCurrentTab() {
         tabManager.closeTab(at: tabManager.selectedIndex)
+    }
+
+    @objc func suspendCurrentTab() {
+        tabManager.toggleSuspendTab(at: tabManager.selectedIndex)
+    }
+
+    @objc func suspendOtherTabs() {
+        tabManager.suspendOtherTabs()
+    }
+
+    @objc func unsuspendAllTabs() {
+        tabManager.unsuspendAllTabs()
+    }
+
+    @objc func suspendTabAtIndex(_ sender: NSMenuItem) {
+        tabManager.toggleSuspendTab(at: sender.tag)
+    }
+
+    @objc func suspendOtherTabsFromIndex(_ sender: NSMenuItem) {
+        let index = sender.tag
+        // Suspend all except the one at index
+        for (i, tab) in tabManager.tabs.enumerated() {
+            guard i != index, !tab.isSuspended, tab.webView != nil else { continue }
+            tab.suspend()
+            tabManager.updateTab(tab)
+        }
+    }
+
+    @objc func closeTabFromMenu(_ sender: NSMenuItem) {
+        tabManager.closeTab(at: sender.tag)
     }
 
     @objc func focusAddressBar() {
@@ -402,6 +440,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             button.action = #selector(tabButtonClicked(_:))
             button.closeTarget = self
             button.closeAction = #selector(tabCloseClicked(_:))
+            button.contextMenuTarget = self
             button.tag = i
             tabStackView.addArrangedSubview(button)
         }
@@ -419,6 +458,27 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     private func displayWebView(for tab: Tab) {
         webViewContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        if tab.isSuspended {
+            let overlay = SuspendedTabOverlay(title: tab.title, url: tab.url)
+            overlay.translatesAutoresizingMaskIntoConstraints = false
+            overlay.onUnsuspend = { [weak self] in
+                guard let self = self,
+                      let idx = self.tabManager.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+                self.tabManager.unsuspendTab(at: idx)
+            }
+            webViewContainer.addSubview(overlay)
+            NSLayoutConstraint.activate([
+                overlay.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                overlay.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                overlay.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                overlay.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+            ])
+            addressBar.setURL(tab.url)
+            jsConsoleController?.updateWebView(nil)
+            return
+        }
+
         guard let wv = tab.webView else { return }
         wv.translatesAutoresizingMaskIntoConstraints = false
         webViewContainer.addSubview(wv)
@@ -946,6 +1006,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func shortcutToggleQueue() { toggleQueue() }
     func shortcutShowHistory() { showHistory() }
 
+    func shortcutToggleSuspendTab() {
+        tabManager.toggleSuspendTab(at: tabManager.selectedIndex)
+    }
+
+    func shortcutSuspendOtherTabs() {
+        tabManager.suspendOtherTabs()
+    }
+
+    func shortcutUnsuspendAllTabs() {
+        tabManager.unsuspendAllTabs()
+    }
+
     func shortcutShowHelp() {
         let vc = HelpModalViewController()
         vc.helpDelegate = self
@@ -1006,10 +1078,12 @@ class TabBarButton: NSView {
     var action: Selector?
     var closeTarget: AnyObject?
     var closeAction: Selector?
+    weak var contextMenuTarget: MainWindowController?
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let closeButton = NSButton()
     private let isSelected: Bool
+    private let isSuspended: Bool
 
     override var tag: Int {
         get { titleLabel.tag }
@@ -1021,6 +1095,7 @@ class TabBarButton: NSView {
 
     init(title: String, index: Int, isSuspended: Bool, isSelected: Bool, isPlaying: Bool) {
         self.isSelected = isSelected
+        self.isSuspended = isSuspended
         super.init(frame: .zero)
 
         wantsLayer = true
@@ -1083,6 +1158,50 @@ class TabBarButton: NSView {
 
     @objc private func closeClicked() {
         _ = closeTarget?.perform(closeAction, with: closeButton)
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        guard let controller = contextMenuTarget else { return }
+        let menu = NSMenu()
+
+        let suspendItem = NSMenuItem(
+            title: isSuspended ? "Unsuspend Tab" : "Suspend Tab",
+            action: #selector(MainWindowController.suspendTabAtIndex(_:)),
+            keyEquivalent: ""
+        )
+        suspendItem.target = controller
+        suspendItem.tag = tag
+        menu.addItem(suspendItem)
+
+        let suspendOthers = NSMenuItem(
+            title: "Suspend Other Tabs",
+            action: #selector(MainWindowController.suspendOtherTabsFromIndex(_:)),
+            keyEquivalent: ""
+        )
+        suspendOthers.target = controller
+        suspendOthers.tag = tag
+        menu.addItem(suspendOthers)
+
+        let unsuspendAll = NSMenuItem(
+            title: "Unsuspend All Tabs",
+            action: #selector(MainWindowController.unsuspendAllTabs),
+            keyEquivalent: ""
+        )
+        unsuspendAll.target = controller
+        menu.addItem(unsuspendAll)
+
+        menu.addItem(.separator())
+
+        let closeItem = NSMenuItem(
+            title: "Close Tab",
+            action: #selector(MainWindowController.closeTabFromMenu(_:)),
+            keyEquivalent: ""
+        )
+        closeItem.target = controller
+        closeItem.tag = tag
+        menu.addItem(closeItem)
+
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 
     override func updateTrackingAreas() {

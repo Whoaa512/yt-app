@@ -39,6 +39,7 @@
 		AA000029 /* PluginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000031; };
 		AA000030 /* PluginManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000032; };
 		AA000031 /* PluginSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000033; };
+		AA000032 /* SuspendedTabOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000034; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,6 +77,7 @@
 		BB000031 /* PluginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManager.swift; sourceTree = "<group>"; };
 		BB000032 /* PluginManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginManifest.swift; sourceTree = "<group>"; };
 		BB000033 /* PluginSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettingsViewController.swift; sourceTree = "<group>"; };
+		BB000034 /* SuspendedTabOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuspendedTabOverlay.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -123,6 +125,7 @@
 				BB000031 /* PluginManager.swift */,
 				BB000032 /* PluginManifest.swift */,
 				BB000033 /* PluginSettingsViewController.swift */,
+				BB000034 /* SuspendedTabOverlay.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -258,6 +261,7 @@
 				AA000029 /* PluginManager.swift in Sources */,
 				AA000030 /* PluginManifest.swift in Sources */,
 				AA000031 /* PluginSettingsViewController.swift in Sources */,
+				AA000032 /* SuspendedTabOverlay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -18,6 +18,9 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutScrollTop()
     func shortcutScrollBottom()
     func shortcutStartElementPicker()
+    func shortcutToggleSuspendTab()
+    func shortcutSuspendOtherTabs()
+    func shortcutUnsuspendAllTabs()
     func shortcutActiveWebView() -> WKWebView?
     func shortcutActiveURL() -> String?
 }
@@ -59,6 +62,10 @@ class KeyboardShortcutHandler {
         Shortcut(key: "q", label: "Toggle queue sidebar", category: "Panels"),
         Shortcut(key: "gh", label: "Show history", category: "Panels"),
         // Other
+        // Suspension
+        Shortcut(key: "gs", label: "Suspend / unsuspend tab", category: "Tabs"),
+        Shortcut(key: "gS", label: "Suspend other tabs", category: "Tabs"),
+        Shortcut(key: "gU", label: "Unsuspend all tabs", category: "Tabs"),
         Shortcut(key: "?", label: "Show keyboard shortcuts", category: "Other"),
         Shortcut(key: "gm", label: "Start element picker (create macro)", category: "Other"),
     ]
@@ -132,6 +139,9 @@ class KeyboardShortcutHandler {
             case "gg": delegate?.shortcutScrollTop(); return true
             case "gh": delegate?.shortcutShowHistory(); return true
             case "gm": delegate?.shortcutStartElementPicker(); return true
+            case "gs": delegate?.shortcutToggleSuspendTab(); return true
+            case "gS": delegate?.shortcutSuspendOtherTabs(); return true
+            case "gU": delegate?.shortcutUnsuspendAllTabs(); return true
             default: return false
             }
         }

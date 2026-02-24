@@ -226,6 +226,62 @@ class TabManager {
         return path.contains("/watch") || path.contains("/shorts/") || path.contains("/live/")
     }
 
+    func toggleSuspendTab(at index: Int) {
+        guard index >= 0, index < tabs.count else { return }
+        let tab = tabs[index]
+
+        if tab.isSuspended {
+            unsuspendTab(at: index)
+        } else {
+            suspendTab(at: index)
+        }
+    }
+
+    func suspendTab(at index: Int) {
+        guard index >= 0, index < tabs.count else { return }
+        let tab = tabs[index]
+        guard !tab.isSuspended, tab.webView != nil else { return }
+
+        tab.suspend()
+        delegate?.tabManager(self, didUpdateTab: tab, at: index)
+
+        // If we just suspended the active tab, show nothing
+        if index == selectedIndex {
+            delegate?.tabManager(self, didSelectTab: tab, at: index)
+        }
+    }
+
+    func unsuspendTab(at index: Int) {
+        guard index >= 0, index < tabs.count else { return }
+        let tab = tabs[index]
+        guard tab.isSuspended else { return }
+
+        ensureWebView(for: tab)
+        tab.webView?.load(URLRequest(url: tab.url))
+        delegate?.tabManager(self, didUpdateTab: tab, at: index)
+
+        if index == selectedIndex {
+            delegate?.tabManager(self, didSelectTab: tab, at: index)
+        }
+    }
+
+    func suspendOtherTabs() {
+        for (i, tab) in tabs.enumerated() {
+            guard i != selectedIndex, !tab.isSuspended, tab.webView != nil else { continue }
+            tab.suspend()
+            delegate?.tabManager(self, didUpdateTab: tab, at: i)
+        }
+    }
+
+    func unsuspendAllTabs() {
+        for (i, tab) in tabs.enumerated() {
+            guard tab.isSuspended else { continue }
+            ensureWebView(for: tab)
+            tab.webView?.load(URLRequest(url: tab.url))
+            delegate?.tabManager(self, didUpdateTab: tab, at: i)
+        }
+    }
+
     private func suspendInactiveTabs() {
         guard currentMemoryMB() > 750 else { return }
 
