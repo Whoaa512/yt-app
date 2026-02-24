@@ -244,6 +244,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let queueItem = NSMenuItem(title: "Toggle Queue", action: #selector(toggleQueue), keyEquivalent: "q")
         queueItem.keyEquivalentModifierMask = [.command, .shift]
         viewMenu.addItem(queueItem)
+        viewMenu.addItem(.separator())
+        for i in 1...9 {
+            let item = NSMenuItem(title: "Tab \(i)", action: #selector(switchToTabByNumber(_:)), keyEquivalent: "\(i)")
+            item.keyEquivalentModifierMask = [.command]
+            item.tag = i
+            viewMenu.addItem(item)
+        }
         let viewMenuItem = NSMenuItem()
         viewMenuItem.submenu = viewMenu
         mainMenu.addItem(viewMenuItem)
@@ -289,6 +296,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func focusAddressBar() {
         addressBar.focus()
+    }
+
+    @objc func switchToTabByNumber(_ sender: NSMenuItem) {
+        let index = sender.tag == 9 ? tabManager.tabs.count - 1 : sender.tag - 1
+        guard index >= 0, index < tabManager.tabs.count else { return }
+        tabManager.selectTab(at: index)
     }
 
     @objc func nextTab() {
