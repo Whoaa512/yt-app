@@ -827,6 +827,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func addressBarGoBack(_ bar: AddressBarView) { goBack() }
     func addressBarGoForward(_ bar: AddressBarView) { goForward() }
 
+    func addressBarBackList(_ bar: AddressBarView) -> [(title: String, url: URL)] {
+        guard let list = tabManager.activeTab?.webView?.backForwardList else { return [] }
+        return list.backList.reversed().map { ($0.title ?? "", $0.url) }
+    }
+
+    func addressBarForwardList(_ bar: AddressBarView) -> [(title: String, url: URL)] {
+        guard let list = tabManager.activeTab?.webView?.backForwardList else { return [] }
+        return list.forwardList.map { ($0.title ?? "", $0.url) }
+    }
+
+    func addressBar(_ bar: AddressBarView, navigateTo url: URL, inNewTab: Bool) {
+        if inNewTab {
+            tabManager.addTab(url: url)
+        } else {
+            tabManager.activeTab?.webView?.load(URLRequest(url: url))
+        }
+    }
+
     // MARK: - HistoryViewControllerDelegate
 
     func historyViewController(_ vc: HistoryViewController, didSelectURL url: URL) {
