@@ -792,7 +792,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func toolbarResetSpeed(_ toolbar: ToolbarView) {
-        let rate = Settings.defaultPlaybackRate
+        let defaultRate = Settings.defaultPlaybackRate
+        let currentRate = tabManager.activeTab?.playbackRate ?? defaultRate
+        let rate: Float = (defaultRate != 1.0 && currentRate != 1.0) ? 1.0 : defaultRate
         if let tab = tabManager.activeTab {
             tab.playbackRate = rate
             applyPlaybackRate(rate, to: tab)

@@ -18,6 +18,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private let rateStepper = NSStepper()
     private var currentRate: Float = 1.0
     private var hoverButtons: [ToolbarButton] = []
+    private var resetBtn: NSButton!
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -101,11 +102,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         playStack.spacing = 2
         playStack.translatesAutoresizingMaskIntoConstraints = false
 
-        // Reset to default button
-        let resetBtn = makeQuickRateButton(title: "↺", rate: -1)
-        resetBtn.toolTip = "Reset to default speed"
+        resetBtn = makeQuickRateButton(title: "↺", rate: -1)
         resetBtn.target = self
         resetBtn.action = #selector(resetSpeedTapped)
+        updateResetButtonTooltip()
 
         // Rate group
         let speedStack = NSStackView(views: [rateLabel, ratePill, resetBtn])
@@ -184,6 +184,17 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     func updatePlaybackRate(_ rate: Float) {
         currentRate = rate
         rateField.stringValue = formatRate(rate)
+        updateResetButtonTooltip()
+    }
+
+    private func updateResetButtonTooltip() {
+        let defaultRate = Settings.defaultPlaybackRate
+        if defaultRate != 1.0 && currentRate != 1.0 {
+            resetBtn.toolTip = "Switch to 1×"
+        } else {
+            resetBtn.toolTip = "Reset to \(formatRate(defaultRate))"
+        }
+        resetBtn.isHidden = (defaultRate == 1.0 && currentRate == 1.0)
     }
 
     private func formatRate(_ rate: Float) -> String {
