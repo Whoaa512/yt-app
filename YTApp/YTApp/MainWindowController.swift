@@ -1334,29 +1334,29 @@ class TabBarButton: NSView {
             closeButton.widthAnchor.constraint(equalToConstant: 16),
         ])
 
-        func loadFavicon(for url: URL?) {
-            if let cached = TabBarButton.faviconCache {
-                faviconView.image = cached
-                return
-            }
-            guard let host = url?.host else {
-                faviconView.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Web")
-                faviconView.contentTintColor = .secondaryLabelColor
-                return
-            }
-            let faviconURL = URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=32")!
-            URLSession.shared.dataTask(with: faviconURL) { [weak self] data, _, _ in
-                guard let data, let image = NSImage(data: data) else { return }
-                TabBarButton.faviconCache = image
-                DispatchQueue.main.async { self?.faviconView.image = image }
-            }.resume()
-        }
-
         let click = NSClickGestureRecognizer(target: self, action: #selector(clicked))
         addGestureRecognizer(click)
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    private func loadFavicon(for url: URL?) {
+        if let cached = TabBarButton.faviconCache {
+            faviconView.image = cached
+            return
+        }
+        guard let host = url?.host else {
+            faviconView.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Web")
+            faviconView.contentTintColor = .secondaryLabelColor
+            return
+        }
+        let faviconURL = URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=32")!
+        URLSession.shared.dataTask(with: faviconURL) { [weak self] data, _, _ in
+            guard let data, let image = NSImage(data: data) else { return }
+            TabBarButton.faviconCache = image
+            DispatchQueue.main.async { self?.faviconView.image = image }
+        }.resume()
+    }
 
     @objc private func clicked() {
         _ = target?.perform(action, with: self)
