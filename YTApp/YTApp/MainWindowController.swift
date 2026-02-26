@@ -23,6 +23,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var progressFadeWorkItem: DispatchWorkItem?
     private var activeToast: ToastView?
     private var toastDismissWorkItem: DispatchWorkItem?
+    private let darkFlashOverlay = NSView()
     private lazy var playbackRateFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.minimumFractionDigits = 0
@@ -152,6 +153,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         webViewContainer.wantsLayer = true
         webViewContainer.layer?.backgroundColor = NSColor.black.cgColor
 
+        darkFlashOverlay.translatesAutoresizingMaskIntoConstraints = false
+        darkFlashOverlay.wantsLayer = true
+        darkFlashOverlay.layer?.backgroundColor = NSColor(named: "AccentColor") != nil ? NSColor.windowBackgroundColor.cgColor : NSColor.black.cgColor
+        darkFlashOverlay.layer?.backgroundColor = NSColor.black.cgColor
+        darkFlashOverlay.alphaValue = 0
+        darkFlashOverlay.layer?.zPosition = 100
+
         // Queue sidebar
         let sidebar = QueueSidebarView(frame: .zero)
         sidebar.delegate = self
@@ -209,6 +217,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             sidebarWidth,
 
             webViewContainer.trailingAnchor.constraint(equalTo: sidebar.leadingAnchor),
+        ])
+
+        webViewContainer.addSubview(darkFlashOverlay)
+        NSLayoutConstraint.activate([
+            darkFlashOverlay.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+            darkFlashOverlay.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+            darkFlashOverlay.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+            darkFlashOverlay.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
         ])
     }
 
@@ -581,6 +597,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let tab = tabForWebView(webView) else { return }
+        if tab.id == tabManager.activeTab?.id {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.15
+                darkFlashOverlay.animator().alphaValue = 0
+            }
+        }
         tab.url = webView.url ?? tab.url
         tab.title = webView.title ?? tab.title
         if tab.title.hasSuffix(" - YouTube") {
@@ -673,6 +695,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         if let tab = tabForWebView(webView), tab.id == tabManager.activeTab?.id {
             addressBar.setURL(webView.url)
+            darkFlashOverlay.alphaValue = 1
         }
     }
 
