@@ -29,6 +29,11 @@ struct Settings {
         set { defaults.set(newValue, forKey: "defaultPlaybackRate") }
     }
 
+    static var queueEnabled: Bool {
+        get { !defaults.bool(forKey: "queueDisabled") }
+        set { defaults.set(!newValue, forKey: "queueDisabled") }
+    }
+
     static var theaterMode: Bool {
         get { defaults.bool(forKey: "theaterMode") }
         set { defaults.set(newValue, forKey: "theaterMode") }

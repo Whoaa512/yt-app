@@ -76,7 +76,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "urlChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "theaterChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "consoleLog")
-        tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
+        if Settings.queueEnabled {
+            tabManager.sharedConfiguration.userContentController.add(self, name: "queueBridge")
+        }
         tabManager.sharedConfiguration.userContentController.add(self, name: "newTab")
         tabManager.sharedConfiguration.userContentController.add(self, name: "elementPicked")
         tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
@@ -283,9 +285,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         reloadItem.keyEquivalentModifierMask = [.command]
         viewMenu.addItem(reloadItem)
         viewMenu.addItem(.separator())
-        let queueItem = NSMenuItem(title: "Toggle Queue", action: #selector(toggleQueue), keyEquivalent: "q")
-        queueItem.keyEquivalentModifierMask = [.command, .shift]
-        viewMenu.addItem(queueItem)
+        if Settings.queueEnabled {
+            let queueItem = NSMenuItem(title: "Toggle Queue", action: #selector(toggleQueue), keyEquivalent: "q")
+            queueItem.keyEquivalentModifierMask = [.command, .shift]
+            viewMenu.addItem(queueItem)
+        }
         viewMenu.addItem(.separator())
         for i in 1...9 {
             let item = NSMenuItem(title: "Tab \(i)", action: #selector(switchToTabByNumber(_:)), keyEquivalent: "\(i)")
@@ -331,12 +335,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         shareItem.keyEquivalentModifierMask = []
         fileMenu2?.addItem(shareItem)
 
-        let queueMenu = NSMenu(title: "Queue")
-        queueMenu.addItem(withTitle: "Export Queue…", action: #selector(exportQueue), keyEquivalent: "")
-        queueMenu.addItem(withTitle: "Import Queue…", action: #selector(importQueue), keyEquivalent: "")
-        let queueMenuItem = NSMenuItem()
-        queueMenuItem.submenu = queueMenu
-        mainMenu.addItem(queueMenuItem)
+        if Settings.queueEnabled {
+            let queueMenu = NSMenu(title: "Queue")
+            queueMenu.addItem(withTitle: "Export Queue…", action: #selector(exportQueue), keyEquivalent: "")
+            queueMenu.addItem(withTitle: "Import Queue…", action: #selector(importQueue), keyEquivalent: "")
+            let queueMenuItem = NSMenuItem()
+            queueMenuItem.submenu = queueMenu
+            mainMenu.addItem(queueMenuItem)
+        }
 
         let historyMenu = NSMenu(title: "History")
         historyMenu.addItem(withTitle: "Show History", action: #selector(showHistory), keyEquivalent: "y")
@@ -997,8 +1003,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 toolbar.hideSeek()
             }
 
-            // Auto-play next in queue when video ends
-            if ended && QueueManager.shared.hasNext {
+            if Settings.queueEnabled && ended && QueueManager.shared.hasNext {
                 handleVideoEnded()
             }
         }
@@ -1007,6 +1012,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - Queue
 
     @objc func toggleQueue() {
+        guard Settings.queueEnabled else { return }
         isQueueVisible.toggle()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2
