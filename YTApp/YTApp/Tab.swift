@@ -10,6 +10,7 @@ class Tab {
     var lastActiveTime: Date
     var isPlayingMedia: Bool = false
     var playbackRate: Float = Settings.defaultPlaybackRate
+    var isPinnedSpeed: Bool = false
 
     init(url: URL, title: String = "New Tab") {
         self.id = UUID()

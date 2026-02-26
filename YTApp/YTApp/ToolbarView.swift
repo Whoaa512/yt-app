@@ -87,7 +87,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
             rateStack.trailingAnchor.constraint(equalTo: ratePill.trailingAnchor, constant: -2),
             rateStack.topAnchor.constraint(equalTo: ratePill.topAnchor, constant: 1),
             rateStack.bottomAnchor.constraint(equalTo: ratePill.bottomAnchor, constant: -1),
-            rateField.widthAnchor.constraint(equalToConstant: 36),
+            rateField.widthAnchor.constraint(greaterThanOrEqualToConstant: 36),
         ])
 
         // Navigation group
@@ -181,9 +181,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         return dot
     }
 
-    func updatePlaybackRate(_ rate: Float) {
+    func updatePlaybackRate(_ rate: Float, pinned: Bool = false) {
         currentRate = rate
-        rateField.stringValue = formatRate(rate)
+        rateField.stringValue = pinned ? "📌 \(formatRate(rate))" : formatRate(rate)
+        rateField.toolTip = pinned ? "Speed pinned to \(formatRate(rate))" : nil
         updateResetButtonTooltip()
     }
 

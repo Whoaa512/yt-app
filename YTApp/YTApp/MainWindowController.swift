@@ -513,7 +513,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         displayWebView(for: tab)
         rebuildTabBar()
         window?.title = tab.title
-        toolbar.updatePlaybackRate(tab.playbackRate)
+        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
         applyPlaybackRate(tab.playbackRate, to: tab)
     }
 
@@ -866,19 +866,22 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float) {
         if let tab = tabManager.activeTab {
+            if tab.isPinnedSpeed {
+                tab.isPinnedSpeed = false
+                toolbar.updatePlaybackRate(rate, pinned: false)
+            }
             tab.playbackRate = rate
             applyPlaybackRate(rate, to: tab)
         }
     }
 
     func toolbarResetSpeed(_ toolbar: ToolbarView) {
+        guard let tab = tabManager.activeTab else { return }
+        if tab.isPinnedSpeed { return }
         let defaultRate = Settings.defaultPlaybackRate
-        let currentRate = tabManager.activeTab?.playbackRate ?? defaultRate
-        let rate: Float = (defaultRate != 1.0 && currentRate != 1.0) ? 1.0 : defaultRate
-        if let tab = tabManager.activeTab {
-            tab.playbackRate = rate
-            applyPlaybackRate(rate, to: tab)
-        }
+        let rate: Float = (defaultRate != 1.0 && tab.playbackRate != 1.0) ? 1.0 : defaultRate
+        tab.playbackRate = rate
+        applyPlaybackRate(rate, to: tab)
         toolbar.updatePlaybackRate(rate)
     }
 
@@ -1043,6 +1046,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func shortcutScrollBottom() {
         tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})")
+    }
+
+    func shortcutTogglePinSpeed() {
+        guard let tab = tabManager.activeTab else { return }
+        tab.isPinnedSpeed.toggle()
+        if tab.isPinnedSpeed {
+            tab.playbackRate = 1.0
+            applyPlaybackRate(1.0, to: tab)
+        } else {
+            tab.playbackRate = Settings.defaultPlaybackRate
+            applyPlaybackRate(tab.playbackRate, to: tab)
+        }
+        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
     }
 
     func shortcutStartElementPicker() {

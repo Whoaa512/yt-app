@@ -18,6 +18,7 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutScrollTop()
     func shortcutScrollBottom()
     func shortcutStartElementPicker()
+    func shortcutTogglePinSpeed()
     func shortcutToggleSuspendTab()
     func shortcutSuspendOtherTabs()
     func shortcutUnsuspendAllTabs()
@@ -63,6 +64,7 @@ class KeyboardShortcutHandler {
         Shortcut(key: "gh", label: "Show history", category: "Panels"),
         // Other
         // Suspension
+        Shortcut(key: "gp", label: "Pin tab speed to 1×", category: "Playback"),
         Shortcut(key: "gs", label: "Suspend / unsuspend tab", category: "Tabs"),
         Shortcut(key: "gS", label: "Suspend other tabs", category: "Tabs"),
         Shortcut(key: "gU", label: "Unsuspend all tabs", category: "Tabs"),
@@ -139,6 +141,7 @@ class KeyboardShortcutHandler {
             case "gg": delegate?.shortcutScrollTop(); return true
             case "gh": delegate?.shortcutShowHistory(); return true
             case "gm": delegate?.shortcutStartElementPicker(); return true
+            case "gp": delegate?.shortcutTogglePinSpeed(); return true
             case "gs": delegate?.shortcutToggleSuspendTab(); return true
             case "gS": delegate?.shortcutSuspendOtherTabs(); return true
             case "gU": delegate?.shortcutUnsuspendAllTabs(); return true
