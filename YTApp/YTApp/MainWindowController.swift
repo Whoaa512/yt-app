@@ -1081,6 +1081,21 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})")
     }
 
+    func shortcutTogglePiP() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("""
+            (function() {
+                const v = document.querySelector('video');
+                if (!v) return;
+                if (document.pictureInPictureElement === v) {
+                    document.exitPictureInPicture();
+                } else {
+                    v.requestPictureInPicture();
+                }
+            })()
+        """)
+        showToast("Picture-in-Picture toggled")
+    }
+
     func shortcutTogglePinSpeed() {
         guard let tab = tabManager.activeTab else { return }
         tab.isPinnedSpeed.toggle()
