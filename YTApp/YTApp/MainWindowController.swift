@@ -25,6 +25,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var toastDismissWorkItem: DispatchWorkItem?
     private let darkFlashOverlay = NSView()
     private var findBar: FindBarView?
+    private var handoffActivity: NSUserActivity?
     private lazy var playbackRateFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.minimumFractionDigits = 0
@@ -718,6 +719,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         if tab.id == tabManager.activeTab?.id {
             addressBar.setURL(webView.url)
             window?.title = tab.title
+            if let url = webView.url { updateHandoff(url: url, title: tab.title) }
         }
 
         // Record history for watch pages
@@ -899,6 +901,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             if tab.id == tabManager.activeTab?.id {
                 addressBar.setURL(url)
                 window?.title = tab.title
+                updateHandoff(url: url, title: tab.title)
             }
             // Dispatch navigate event to plugins
             PluginManager.shared.dispatchEvent("navigate", data: [
@@ -1305,6 +1308,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     // MARK: - Helpers
+
+    private func updateHandoff(url: URL, title: String) {
+        let activity = NSUserActivity(activityType: "com.ytapp.browsing")
+        activity.title = title
+        activity.webpageURL = url
+        activity.isEligibleForHandoff = true
+        activity.becomeCurrent()
+        handoffActivity = activity
+    }
 
     private func resumePlaybackIfNeeded(url: URL, webView: WKWebView) {
         guard let position = HistoryManager.shared.getPlaybackPosition(url: url.absoluteString),
