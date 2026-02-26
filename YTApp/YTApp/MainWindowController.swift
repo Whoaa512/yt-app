@@ -828,8 +828,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                     title: title, channel: channel,
                     duration: duration, currentTime: currentTime, paused: paused
                 )
+                toolbar.updateNowPlaying(title: title, channel: channel)
             } else {
                 MediaKeyHandler.shared.clearNowPlaying()
+                toolbar.clearNowPlaying()
             }
 
             // Auto-play next in queue when video ends

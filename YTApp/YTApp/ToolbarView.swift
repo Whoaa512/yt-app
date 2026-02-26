@@ -19,6 +19,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private var currentRate: Float = 1.0
     private var hoverButtons: [ToolbarButton] = []
     private var resetBtn: NSButton!
+    private let nowPlayingLabel = NSTextField(labelWithString: "")
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -127,6 +128,15 @@ class ToolbarView: NSView, NSTextFieldDelegate {
 
         addSubview(centerStack)
 
+        nowPlayingLabel.translatesAutoresizingMaskIntoConstraints = false
+        nowPlayingLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        nowPlayingLabel.textColor = .tertiaryLabelColor
+        nowPlayingLabel.lineBreakMode = .byTruncatingTail
+        nowPlayingLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        nowPlayingLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        nowPlayingLabel.alphaValue = 0
+        addSubview(nowPlayingLabel)
+
         // Bottom hairline
         let hairline = NSView()
         hairline.wantsLayer = true
@@ -137,6 +147,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         NSLayoutConstraint.activate([
             centerStack.centerXAnchor.constraint(equalTo: centerXAnchor),
             centerStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            nowPlayingLabel.leadingAnchor.constraint(greaterThanOrEqualTo: centerStack.trailingAnchor, constant: 12),
+            nowPlayingLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -12),
+            nowPlayingLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
             hairline.leadingAnchor.constraint(equalTo: leadingAnchor),
             hairline.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -179,6 +193,28 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         dot.widthAnchor.constraint(equalToConstant: 3).isActive = true
         dot.heightAnchor.constraint(equalToConstant: 3).isActive = true
         return dot
+    }
+
+    func updateNowPlaying(title: String, channel: String) {
+        if title.isEmpty {
+            nowPlayingLabel.stringValue = ""
+            nowPlayingLabel.alphaValue = 0
+        } else {
+            let text = channel.isEmpty ? title : "\(title) — \(channel)"
+            nowPlayingLabel.stringValue = text
+            nowPlayingLabel.toolTip = text
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.15
+                nowPlayingLabel.animator().alphaValue = 1
+            }
+        }
+    }
+
+    func clearNowPlaying() {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.15
+            nowPlayingLabel.animator().alphaValue = 0
+        }
     }
 
     func updatePlaybackRate(_ rate: Float, pinned: Bool = false) {
