@@ -159,6 +159,23 @@ class QueueManager {
         delegate?.queueDidUpdate()
     }
 
+    // MARK: - Import/Export
+
+    func exportJSON() -> Data? {
+        try? JSONEncoder().encode(items)
+    }
+
+    func importJSON(_ data: Data) {
+        guard let imported = try? JSONDecoder().decode([QueueItem].self, from: data) else { return }
+        for item in imported {
+            if !items.contains(where: { $0.videoId == item.videoId }) {
+                items.append(item)
+            }
+        }
+        save()
+        delegate?.queueDidUpdate()
+    }
+
     // MARK: - Persistence
 
     private func save() {

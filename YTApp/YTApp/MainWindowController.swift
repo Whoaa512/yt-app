@@ -331,6 +331,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         shareItem.keyEquivalentModifierMask = []
         fileMenu2?.addItem(shareItem)
 
+        let queueMenu = NSMenu(title: "Queue")
+        queueMenu.addItem(withTitle: "Export Queue…", action: #selector(exportQueue), keyEquivalent: "")
+        queueMenu.addItem(withTitle: "Import Queue…", action: #selector(importQueue), keyEquivalent: "")
+        let queueMenuItem = NSMenuItem()
+        queueMenuItem.submenu = queueMenu
+        mainMenu.addItem(queueMenuItem)
+
         let historyMenu = NSMenu(title: "History")
         historyMenu.addItem(withTitle: "Show History", action: #selector(showHistory), keyEquivalent: "y")
         let historyMenuItem = NSMenuItem()
@@ -456,6 +463,27 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             controller.showWindow(nil)
             controller.window?.orderFront(nil)
             jsConsoleController = controller
+        }
+    }
+
+    @objc func exportQueue() {
+        guard let data = QueueManager.shared.exportJSON() else { return }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "queue.json"
+        panel.allowedContentTypes = [.json]
+        panel.beginSheetModal(for: window!) { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? data.write(to: url)
+        }
+    }
+
+    @objc func importQueue() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.beginSheetModal(for: window!) { response in
+            guard response == .OK, let url = panel.url, let data = try? Data(contentsOf: url) else { return }
+            QueueManager.shared.importJSON(data)
+            self.showToast("Queue imported")
         }
     }
 
