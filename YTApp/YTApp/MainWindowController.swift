@@ -585,7 +585,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - Display WebView
 
     private func displayWebView(for tab: Tab) {
-        let oldSubviews = webViewContainer.subviews.filter { $0 !== darkFlashOverlay && !($0 is FindBarView) && !($0 is ToastView) }
+        let keepViews: Set<ObjectIdentifier> = [
+            ObjectIdentifier(darkFlashOverlay),
+            tab.webView.map { ObjectIdentifier($0) },
+        ].compactMap { $0 }.reduce(into: Set()) { $0.insert($1) }
+
+        let oldSubviews = webViewContainer.subviews.filter {
+            !keepViews.contains(ObjectIdentifier($0)) && !($0 is FindBarView) && !($0 is ToastView)
+        }
         oldSubviews.forEach { view in
             NSAnimationContext.runAnimationGroup({ ctx in
                 ctx.duration = 0.12
@@ -634,18 +641,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             }
         }
 
+        darkFlashOverlay.alphaValue = 0
+
         wv.translatesAutoresizingMaskIntoConstraints = false
-        wv.alphaValue = 0
-        webViewContainer.addSubview(wv, positioned: .below, relativeTo: darkFlashOverlay)
-        NSLayoutConstraint.activate([
-            wv.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
-            wv.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
-            wv.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
-            wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
-        ])
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.12
-            wv.animator().alphaValue = 1
+        if wv.superview !== webViewContainer {
+            wv.alphaValue = 0
+            webViewContainer.addSubview(wv, positioned: .below, relativeTo: darkFlashOverlay)
+            NSLayoutConstraint.activate([
+                wv.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                wv.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                wv.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+            ])
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.12
+                wv.animator().alphaValue = 1
+            }
+        } else {
+            wv.alphaValue = 1
         }
         addressBar.setURL(tab.webView?.url ?? tab.url)
         jsConsoleController?.updateWebView(tab.webView)
