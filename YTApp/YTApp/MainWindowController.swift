@@ -9,6 +9,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
     private let toolbar = ToolbarView(frame: .zero)
+    private let loadingProgressBar = LoadingProgressBar(frame: .zero)
     private let tabBar = NSSegmentedControl()
     private let webViewContainer = NSView()
     private var tabBarScrollView: NSScrollView!
@@ -18,6 +19,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // Custom tab bar
     private let tabStackView = NSStackView()
     private var jsConsoleController: JSConsoleWindowController?
+    private var progressObservation: NSKeyValueObservation?
+    private var progressFadeWorkItem: DispatchWorkItem?
 
     // Queue sidebar
     private var queueSidebar: QueueSidebarView?
@@ -134,6 +137,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         toolbar.translatesAutoresizingMaskIntoConstraints = false
         toolbar.delegate = self
 
+        loadingProgressBar.translatesAutoresizingMaskIntoConstraints = false
+
         webViewContainer.translatesAutoresizingMaskIntoConstraints = false
         webViewContainer.wantsLayer = true
         webViewContainer.layer?.backgroundColor = NSColor.black.cgColor
@@ -153,6 +158,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         contentView.addSubview(tabBarContainer)
         contentView.addSubview(addressBar)
         contentView.addSubview(toolbar)
+        contentView.addSubview(loadingProgressBar)
         contentView.addSubview(bodyContainer)
 
         let sidebarWidth = sidebar.widthAnchor.constraint(equalToConstant: 0)
@@ -174,7 +180,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             toolbar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             toolbar.heightAnchor.constraint(equalToConstant: 30),
 
-            bodyContainer.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            loadingProgressBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            loadingProgressBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            loadingProgressBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            loadingProgressBar.heightAnchor.constraint(equalToConstant: 2),
+
+            bodyContainer.topAnchor.constraint(equalTo: loadingProgressBar.bottomAnchor),
             bodyContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             bodyContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             bodyContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
@@ -511,6 +522,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func tabManager(_ manager: TabManager, didSelectTab tab: Tab, at index: Int) {
         displayWebView(for: tab)
+        observeLoadingProgress(for: tab.webView)
         rebuildTabBar()
         window?.title = tab.title
         toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
@@ -924,6 +936,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
+        progressObservation?.invalidate()
+        progressFadeWorkItem?.cancel()
         saveWindowState()
     }
 
@@ -1092,6 +1106,55 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private func tabForWebView(_ webView: WKWebView) -> Tab? {
         tabManager.tabs.first { $0.webView === webView }
     }
+
+    private func observeLoadingProgress(for webView: WKWebView?) {
+        progressObservation?.invalidate()
+        progressObservation = nil
+        progressFadeWorkItem?.cancel()
+
+        guard let webView else {
+            loadingProgressBar.alphaValue = 0
+            loadingProgressBar.setProgress(0, animated: false)
+            return
+        }
+
+        progressObservation = webView.observe(\.estimatedProgress, options: [.initial, .new]) { [weak self] webView, _ in
+            self?.updateLoadingProgress(webView.estimatedProgress)
+        }
+    }
+
+    private func updateLoadingProgress(_ progress: Double) {
+        let clamped = max(0, min(progress, 1))
+        progressFadeWorkItem?.cancel()
+
+        if clamped >= 1 {
+            loadingProgressBar.alphaValue = 1
+            loadingProgressBar.setProgress(1, animated: true)
+
+            let fadeItem = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                NSAnimationContext.runAnimationGroup({ context in
+                    context.duration = 0.2
+                    self.loadingProgressBar.animator().alphaValue = 0
+                }, completionHandler: {
+                    self.loadingProgressBar.setProgress(0, animated: false)
+                })
+            }
+
+            progressFadeWorkItem = fadeItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: fadeItem)
+            return
+        }
+
+        guard clamped > 0 else {
+            loadingProgressBar.alphaValue = 0
+            loadingProgressBar.setProgress(0, animated: false)
+            return
+        }
+
+        loadingProgressBar.alphaValue = 1
+        loadingProgressBar.setProgress(max(clamped, 0.03), animated: true)
+    }
 }
 
 // MARK: - TabBarButton
@@ -1239,5 +1302,55 @@ class TabBarButton: NSView {
 
     override func mouseExited(with event: NSEvent) {
         closeButton.alphaValue = 0.5
+    }
+}
+
+class LoadingProgressBar: NSView {
+    private let fillView = NSView(frame: .zero)
+    private var fillWidthConstraint: NSLayoutConstraint!
+    private var progress: Double = 0
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+        alphaValue = 0
+
+        fillView.translatesAutoresizingMaskIntoConstraints = false
+        fillView.wantsLayer = true
+        fillView.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
+        addSubview(fillView)
+
+        fillWidthConstraint = fillView.widthAnchor.constraint(equalToConstant: 0)
+        NSLayoutConstraint.activate([
+            fillView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            fillView.topAnchor.constraint(equalTo: topAnchor),
+            fillView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            fillWidthConstraint,
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func layout() {
+        super.layout()
+        fillWidthConstraint.constant = bounds.width * progress
+    }
+
+    func setProgress(_ value: Double, animated: Bool) {
+        progress = max(0, min(value, 1))
+        let target = bounds.width * progress
+
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.16
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                fillWidthConstraint.animator().constant = target
+                layoutSubtreeIfNeeded()
+            }
+        } else {
+            fillWidthConstraint.constant = target
+        }
     }
 }
