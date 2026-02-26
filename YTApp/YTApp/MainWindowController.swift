@@ -325,6 +325,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         pluginMenuItem.submenu = pluginMenu
         mainMenu.addItem(pluginMenuItem)
 
+        let fileMenu2 = mainMenu.item(withTitle: "File")?.submenu
+        fileMenu2?.addItem(.separator())
+        let shareItem = NSMenuItem(title: "Share…", action: #selector(shareCurrentPage), keyEquivalent: "")
+        shareItem.keyEquivalentModifierMask = []
+        fileMenu2?.addItem(shareItem)
+
         let historyMenu = NSMenu(title: "History")
         historyMenu.addItem(withTitle: "Show History", action: #selector(showHistory), keyEquivalent: "y")
         let historyMenuItem = NSMenuItem()
@@ -451,6 +457,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             controller.window?.orderFront(nil)
             jsConsoleController = controller
         }
+    }
+
+    @objc func shareCurrentPage() {
+        guard let url = tabManager.activeTab?.webView?.url else { return }
+        let title = tabManager.activeTab?.title ?? ""
+        let picker = NSSharingServicePicker(items: [url, title])
+        picker.show(relativeTo: .zero, of: addressBar, preferredEdge: .minY)
     }
 
     @objc func showHistory() {
