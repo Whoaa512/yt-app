@@ -21,6 +21,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var jsConsoleController: JSConsoleWindowController?
     private var progressObservation: NSKeyValueObservation?
     private var progressFadeWorkItem: DispatchWorkItem?
+    private var activeToast: ToastView?
+    private var toastDismissWorkItem: DispatchWorkItem?
+    private lazy var playbackRateFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.minimumIntegerDigits = 1
+        return formatter
+    }()
 
     // Queue sidebar
     private var queueSidebar: QueueSidebarView?
@@ -317,7 +326,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     @objc func suspendCurrentTab() {
+        let wasSuspended = tabManager.activeTab?.isSuspended ?? false
         tabManager.toggleSuspendTab(at: tabManager.selectedIndex)
+        if !wasSuspended {
+            showToast("Tab suspended")
+        }
     }
 
     @objc func suspendOtherTabs() {
@@ -726,6 +739,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 )
                 // Auto-show queue sidebar when adding
                 if !isQueueVisible { toggleQueue() }
+                let displayTitle = title.isEmpty ? "Video" : title
+                showToast("Added to queue: \(displayTitle)")
             }
             return
         }
@@ -884,6 +899,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             }
             tab.playbackRate = rate
             applyPlaybackRate(rate, to: tab)
+            showToast("Speed: \(playbackRateText(rate))x")
         }
     }
 
@@ -895,6 +911,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tab.playbackRate = rate
         applyPlaybackRate(rate, to: tab)
         toolbar.updatePlaybackRate(rate)
+        showToast("Speed: \(playbackRateText(rate))x")
     }
 
     // MARK: - AddressBarDelegate
@@ -1068,9 +1085,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         if tab.isPinnedSpeed {
             tab.playbackRate = 1.0
             applyPlaybackRate(1.0, to: tab)
+            showToast("Speed pinned to 1×")
         } else {
             tab.playbackRate = Settings.defaultPlaybackRate
             applyPlaybackRate(tab.playbackRate, to: tab)
+            showToast("Speed unpinned")
         }
         toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
     }
@@ -1154,6 +1173,51 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         loadingProgressBar.alphaValue = 1
         loadingProgressBar.setProgress(max(clamped, 0.03), animated: true)
+    }
+
+    func showToast(_ message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        toastDismissWorkItem?.cancel()
+        activeToast?.removeFromSuperview()
+        activeToast = nil
+
+        let toast = ToastView(message: trimmed)
+        toast.alphaValue = 0
+        webViewContainer.addSubview(toast)
+        NSLayoutConstraint.activate([
+            toast.centerXAnchor.constraint(equalTo: webViewContainer.centerXAnchor),
+            toast.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor, constant: -60),
+            toast.widthAnchor.constraint(lessThanOrEqualTo: webViewContainer.widthAnchor, constant: -24),
+        ])
+        activeToast = toast
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            toast.animator().alphaValue = 1
+        }
+
+        let dismissItem = DispatchWorkItem { [weak self, weak toast] in
+            guard let self, let toast, self.activeToast === toast else { return }
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                toast.animator().alphaValue = 0
+            }, completionHandler: { [weak self, weak toast] in
+                guard let self, let toast, self.activeToast === toast else { return }
+                toast.removeFromSuperview()
+                self.activeToast = nil
+            })
+        }
+
+        toastDismissWorkItem = dismissItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: dismissItem)
+    }
+
+    private func playbackRateText(_ rate: Float) -> String {
+        playbackRateFormatter.string(from: NSNumber(value: rate)) ?? String(format: "%.2f", rate)
     }
 }
 
@@ -1353,4 +1417,35 @@ class LoadingProgressBar: NSView {
             fillWidthConstraint.constant = target
         }
     }
+}
+
+class ToastView: NSView {
+    private let label = NSTextField(labelWithString: "")
+
+    init(message: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.withAlphaComponent(0.75).cgColor
+        layer?.cornerRadius = 8
+        layer?.masksToBounds = true
+
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.stringValue = message
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.alignment = .center
+        label.lineBreakMode = .byTruncatingTail
+        label.maximumNumberOfLines = 1
+
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
 }
