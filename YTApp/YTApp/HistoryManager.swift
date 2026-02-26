@@ -1,5 +1,7 @@
 import Foundation
 import SQLite3
+import CoreSpotlight
+import UniformTypeIdentifiers
 
 struct HistoryEntry {
     var id: Int64
@@ -77,6 +79,19 @@ class HistoryManager {
             sqlite3_step(insertStmt)
         }
         sqlite3_finalize(insertStmt)
+
+        indexToSpotlight(url: url, title: title, duration: duration)
+    }
+
+    private func indexToSpotlight(url: String, title: String?, duration: String?) {
+        let attrs = CSSearchableItemAttributeSet(contentType: .url)
+        attrs.title = title
+        attrs.contentDescription = duration.map { "Duration: \($0)" }
+        attrs.url = URL(string: url)
+
+        let item = CSSearchableItem(uniqueIdentifier: url, domainIdentifier: "com.ytapp.history", attributeSet: attrs)
+        item.expirationDate = Date(timeIntervalSinceNow: 30 * 24 * 60 * 60)
+        CSSearchableIndex.default().indexSearchableItems([item])
     }
 
     func search(query: String = "", limit: Int = 200) -> [HistoryEntry] {
