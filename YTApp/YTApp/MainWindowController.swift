@@ -24,6 +24,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var activeToast: ToastView?
     private var toastDismissWorkItem: DispatchWorkItem?
     private let darkFlashOverlay = NSView()
+    private var findBar: FindBarView?
     private lazy var playbackRateFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.minimumFractionDigits = 0
@@ -256,6 +257,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         editMenu.addItem(.separator())
         let focusItem = NSMenuItem(title: "Focus Address Bar", action: #selector(focusAddressBar), keyEquivalent: "l")
         editMenu.addItem(focusItem)
+        let findItem = NSMenuItem(title: "Find…", action: #selector(showFindBar), keyEquivalent: "f")
+        editMenu.addItem(findItem)
         let editMenuItem = NSMenuItem()
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
@@ -377,6 +380,37 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func focusAddressBar() {
         addressBar.focus()
+    }
+
+    @objc func showFindBar() {
+        if let existing = findBar {
+            existing.focus()
+            return
+        }
+        let bar = FindBarView()
+        bar.translatesAutoresizingMaskIntoConstraints = false
+        bar.onSearch = { [weak self] query in
+            self?.tabManager.activeTab?.webView?.evaluateJavaScript(
+                "window.find('\(query.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\"))', false, false, true)"
+            )
+        }
+        bar.onDismiss = { [weak self] in
+            self?.dismissFindBar()
+        }
+        webViewContainer.addSubview(bar)
+        NSLayoutConstraint.activate([
+            bar.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+            bar.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+            bar.widthAnchor.constraint(equalToConstant: 300),
+            bar.heightAnchor.constraint(equalToConstant: 32),
+        ])
+        findBar = bar
+        bar.focus()
+    }
+
+    private func dismissFindBar() {
+        findBar?.removeFromSuperview()
+        findBar = nil
     }
 
     @objc func switchToTabByNumber(_ sender: NSMenuItem) {
@@ -1496,6 +1530,58 @@ class LoadingProgressBar: NSView {
             fillWidthConstraint.constant = target
         }
     }
+}
+
+class FindBarView: NSView {
+    var onSearch: ((String) -> Void)?
+    var onDismiss: (() -> Void)?
+    private let textField = NSTextField()
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        layer?.cornerRadius = 6
+        layer?.borderWidth = 0.5
+        layer?.borderColor = NSColor.separatorColor.cgColor
+        layer?.shadowOpacity = 0.2
+        layer?.shadowRadius = 4
+
+        textField.placeholderString = "Find in page…"
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.bezelStyle = .roundedBezel
+        textField.target = self
+        textField.action = #selector(search)
+
+        let close = NSButton(title: "✕", target: self, action: #selector(dismiss))
+        close.isBordered = false
+        close.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(textField)
+        addSubview(close)
+        NSLayoutConstraint.activate([
+            textField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            textField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textField.trailingAnchor.constraint(equalTo: close.leadingAnchor, constant: -4),
+            close.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            close.centerYAnchor.constraint(equalTo: centerYAnchor),
+            close.widthAnchor.constraint(equalToConstant: 20),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func focus() { window?.makeFirstResponder(textField) }
+
+    @objc private func search() {
+        let q = textField.stringValue
+        guard !q.isEmpty else { return }
+        onSearch?(q)
+    }
+
+    @objc private func dismiss() { onDismiss?() }
+
+    override func cancelOperation(_ sender: Any?) { onDismiss?() }
 }
 
 class ToastView: NSView {
