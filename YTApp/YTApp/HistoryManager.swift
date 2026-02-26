@@ -7,6 +7,7 @@ struct HistoryEntry {
     var title: String?
     var duration: String?
     var visitedAt: Date
+    var playbackPosition: Double?
 }
 
 class HistoryManager {
@@ -38,6 +39,8 @@ class HistoryManager {
         CREATE INDEX IF NOT EXISTS idx_history_title ON history(title);
         """
         sqlite3_exec(db, sql, nil, nil, nil)
+
+        sqlite3_exec(db, "ALTER TABLE history ADD COLUMN playback_position REAL DEFAULT 0", nil, nil, nil)
     }
 
     func recordVisit(url: String, title: String?, duration: String?) {
@@ -81,9 +84,9 @@ class HistoryManager {
         var results: [HistoryEntry] = []
         let sql: String
         if query.isEmpty {
-            sql = "SELECT id, url, title, duration, visited_at FROM history ORDER BY visited_at DESC LIMIT ?"
+            sql = "SELECT id, url, title, duration, visited_at, playback_position FROM history ORDER BY visited_at DESC LIMIT ?"
         } else {
-            sql = "SELECT id, url, title, duration, visited_at FROM history WHERE title LIKE ? OR url LIKE ? ORDER BY visited_at DESC LIMIT ?"
+            sql = "SELECT id, url, title, duration, visited_at, playback_position FROM history WHERE title LIKE ? OR url LIKE ? ORDER BY visited_at DESC LIMIT ?"
         }
 
         var stmt: OpaquePointer?
@@ -103,11 +106,40 @@ class HistoryManager {
                 let duration = sqlite3_column_text(stmt, 3).map { String(cString: $0) }
                 let visitedAtStr = sqlite3_column_text(stmt, 4).map { String(cString: $0) }
                 let visitedAt = visitedAtStr.flatMap { dateFormatter.date(from: $0) } ?? Date()
-                results.append(HistoryEntry(id: id, url: url, title: title, duration: duration, visitedAt: visitedAt))
+                let pos = sqlite3_column_double(stmt, 5)
+                results.append(HistoryEntry(id: id, url: url, title: title, duration: duration, visitedAt: visitedAt, playbackPosition: pos > 0 ? pos : nil))
             }
         }
         sqlite3_finalize(stmt)
         return results
+    }
+
+    func savePlaybackPosition(url: String, position: Double) {
+        guard let db = db else { return }
+        let sql = "UPDATE history SET playback_position = ? WHERE url = ? ORDER BY visited_at DESC LIMIT 1"
+        var stmt: OpaquePointer?
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_double(stmt, 1, position)
+            sqlite3_bind_text(stmt, 2, (url as NSString).utf8String, -1, nil)
+            sqlite3_step(stmt)
+        }
+        sqlite3_finalize(stmt)
+    }
+
+    func getPlaybackPosition(url: String) -> Double? {
+        guard let db = db else { return nil }
+        let sql = "SELECT playback_position FROM history WHERE url = ? ORDER BY visited_at DESC LIMIT 1"
+        var stmt: OpaquePointer?
+        var position: Double?
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_text(stmt, 1, (url as NSString).utf8String, -1, nil)
+            if sqlite3_step(stmt) == SQLITE_ROW {
+                let val = sqlite3_column_double(stmt, 0)
+                if val > 5 { position = val }
+            }
+        }
+        sqlite3_finalize(stmt)
+        return position
     }
 
     func delete(id: Int64) {

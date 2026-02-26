@@ -835,8 +835,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             ], webView: webView)
             // Record history for watch pages
             if url.absoluteString.contains("youtube.com/watch") {
-                // Re-apply playback rate on SPA navigation
                 applyPlaybackSettings(to: webView)
+                resumePlaybackIfNeeded(url: url, webView: webView)
                 webView.evaluateJavaScript(durationExtractorJS) { result, _ in
                     let duration = result as? String
                     HistoryManager.shared.recordVisit(url: url.absoluteString, title: tab.title, duration: duration)
@@ -866,6 +866,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             for other in tabManager.tabs where other.id != tab.id && other.isPlayingMedia {
                 other.webView?.evaluateJavaScript("document.querySelector('video')?.pause()")
             }
+        }
+
+        let currentTime = json["currentTime"] as? Double ?? 0
+        let duration = json["duration"] as? Double ?? 0
+        if currentTime > 5 && duration > 0 && currentTime < duration - 5,
+           let urlStr = webView.url?.absoluteString {
+            HistoryManager.shared.savePlaybackPosition(url: urlStr, position: currentTime)
         }
 
         // Dispatch videoState event to plugins
@@ -1212,6 +1219,28 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     // MARK: - Helpers
+
+    private func resumePlaybackIfNeeded(url: URL, webView: WKWebView) {
+        guard let position = HistoryManager.shared.getPlaybackPosition(url: url.absoluteString),
+              position > 10 else { return }
+        let mins = Int(position) / 60
+        let secs = Int(position) % 60
+        showToast("Resuming at \(mins):\(String(format: "%02d", secs))")
+        webView.evaluateJavaScript("""
+            (function() {
+                function seek() {
+                    const v = document.querySelector('video');
+                    if (v && v.duration > 0) { v.currentTime = \(position); return true; }
+                    return false;
+                }
+                if (!seek()) {
+                    const obs = new MutationObserver(function() { if (seek()) obs.disconnect(); });
+                    obs.observe(document.body, { childList: true, subtree: true });
+                    setTimeout(function() { obs.disconnect(); }, 10000);
+                }
+            })()
+        """)
+    }
 
     private func tabForWebView(_ webView: WKWebView) -> Tab? {
         tabManager.tabs.first { $0.webView === webView }
