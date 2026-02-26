@@ -240,6 +240,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let forwardItem = NSMenuItem(title: "Forward", action: #selector(goForward), keyEquivalent: "]")
         forwardItem.keyEquivalentModifierMask = [.command]
         viewMenu.addItem(forwardItem)
+        let reloadItem = NSMenuItem(title: "Reload Page", action: #selector(reloadPage), keyEquivalent: "r")
+        reloadItem.keyEquivalentModifierMask = [.command]
+        viewMenu.addItem(reloadItem)
         viewMenu.addItem(.separator())
         let queueItem = NSMenuItem(title: "Toggle Queue", action: #selector(toggleQueue), keyEquivalent: "q")
         queueItem.keyEquivalentModifierMask = [.command, .shift]
@@ -358,6 +361,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func goForward() {
         tabManager.activeTab?.webView?.goForward()
+    }
+
+    @objc func reloadPage() {
+        tabManager.activeTab?.webView?.reload()
     }
 
     @objc func toggleJSConsole() {
