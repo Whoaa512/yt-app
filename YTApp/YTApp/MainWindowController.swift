@@ -1348,6 +1348,7 @@ class TabBarButton: NSView {
             faviconView.image = NSImage(systemSymbolName: "speaker.wave.2.fill", accessibilityDescription: "Playing")
             faviconView.contentTintColor = .systemGreen
             faviconView.alphaValue = 1.0
+            addPulseAnimation(to: faviconView)
         } else {
             loadFavicon(for: url)
         }
@@ -1413,6 +1414,18 @@ class TabBarButton: NSView {
             TabBarButton.faviconCache = image
             DispatchQueue.main.async { self?.faviconView.image = image }
         }.resume()
+    }
+
+    private func addPulseAnimation(to view: NSView) {
+        view.wantsLayer = true
+        let anim = CABasicAnimation(keyPath: "opacity")
+        anim.fromValue = 1.0
+        anim.toValue = 0.4
+        anim.duration = 0.8
+        anim.autoreverses = true
+        anim.repeatCount = .infinity
+        anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        view.layer?.add(anim, forKey: "pulse")
     }
 
     @objc private func clicked() {
