@@ -538,7 +538,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     // MARK: - Display WebView
 
     private func displayWebView(for tab: Tab) {
-        webViewContainer.subviews.forEach { $0.removeFromSuperview() }
+        let oldSubviews = webViewContainer.subviews.filter { $0 !== darkFlashOverlay && !($0 is FindBarView) && !($0 is ToastView) }
+        oldSubviews.forEach { view in
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.12
+                view.animator().alphaValue = 0
+            }, completionHandler: {
+                view.removeFromSuperview()
+            })
+        }
 
         if tab.isSuspended {
             let overlay = SuspendedTabOverlay(title: tab.title, url: tab.url)
@@ -562,13 +570,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         guard let wv = tab.webView else { return }
         wv.translatesAutoresizingMaskIntoConstraints = false
-        webViewContainer.addSubview(wv)
+        wv.alphaValue = 0
+        webViewContainer.addSubview(wv, positioned: .below, relativeTo: darkFlashOverlay)
         NSLayoutConstraint.activate([
             wv.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
             wv.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
             wv.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
             wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
         ])
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.12
+            wv.animator().alphaValue = 1
+        }
         addressBar.setURL(tab.webView?.url ?? tab.url)
         jsConsoleController?.updateWebView(tab.webView)
     }
