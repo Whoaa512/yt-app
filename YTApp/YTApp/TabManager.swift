@@ -138,12 +138,12 @@ class TabManager {
     }
 
     @discardableResult
-    func addTab(url: URL = URL(string: "https://www.youtube.com")!) -> Tab {
+    func addTab(url: URL = URL(string: "https://www.youtube.com")!, select: Bool = true) -> Tab {
         let tab = Tab(url: url)
         tabs.append(tab)
         let index = tabs.count - 1
         delegate?.tabManager(self, didAddTab: tab, at: index)
-        selectTab(at: index)
+        if select { selectTab(at: index) }
         return tab
     }
 

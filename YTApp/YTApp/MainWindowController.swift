@@ -525,22 +525,23 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     private func restoreTabs() {
         if let tabData = UserDefaults.standard.array(forKey: "savedTabs") as? [[String: Any]], !tabData.isEmpty {
-            for entry in tabData {
-                if let urlStr = entry["url"] as? String, let url = URL(string: urlStr) {
-                    let tab = tabManager.addTab(url: url)
-                    if let title = entry["title"] as? String, !title.isEmpty {
-                        tab.title = title
-                    }
-                    if entry["pinnedSpeed"] as? Bool == true {
-                        tab.isPinnedSpeed = true
-                        tab.playbackRate = 1.0
-                    }
+            let savedIndex = UserDefaults.standard.integer(forKey: "savedTabSelectedIndex")
+            for (i, entry) in tabData.enumerated() {
+                guard let urlStr = entry["url"] as? String, let url = URL(string: urlStr) else { continue }
+                let tab = tabManager.addTab(url: url, select: false)
+                if let title = entry["title"] as? String, !title.isEmpty {
+                    tab.title = title
+                }
+                if entry["pinnedSpeed"] as? Bool == true {
+                    tab.isPinnedSpeed = true
+                    tab.playbackRate = 1.0
+                }
+                if i != savedIndex {
+                    tab.isSuspended = true
                 }
             }
-            let savedIndex = UserDefaults.standard.integer(forKey: "savedTabSelectedIndex")
-            if savedIndex >= 0 && savedIndex < tabManager.tabs.count {
-                tabManager.selectTab(at: savedIndex)
-            }
+            let idx = (savedIndex >= 0 && savedIndex < tabManager.tabs.count) ? savedIndex : 0
+            tabManager.selectTab(at: idx)
         } else {
             tabManager.addTab()
         }
