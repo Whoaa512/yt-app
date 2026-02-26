@@ -9,12 +9,15 @@ protocol AddressBarDelegate: AnyObject {
     func addressBar(_ bar: AddressBarView, navigateTo url: URL, inNewTab: Bool)
 }
 
-class AddressBarView: NSView {
+class AddressBarView: NSView, NSTextFieldDelegate, NSTableViewDelegate, NSTableViewDataSource {
     weak var delegate: AddressBarDelegate?
 
     let backButton = NSButton()
     let forwardButton = NSButton()
     let textField = NSTextField()
+    private var suggestionsWindow: NSWindow?
+    private var suggestions: [HistoryEntry] = []
+    private var suggestionsTableView: NSTableView?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -52,6 +55,7 @@ class AddressBarView: NSView {
         textField.cell?.isScrollable = true
         textField.cell?.usesSingleLineMode = true
         textField.bezelStyle = .roundedBezel
+        textField.delegate = self
 
         addSubview(backButton)
         addSubview(forwardButton)
@@ -152,5 +156,101 @@ class AddressBarView: NSView {
         let event = NSApp.currentEvent
         let newTab = event?.modifierFlags.contains(.command) == true
         delegate?.addressBar(self, navigateTo: url, inNewTab: newTab)
+    }
+
+    // MARK: - Autocomplete
+
+    func controlTextDidChange(_ obj: Notification) {
+        let query = textField.stringValue
+        guard query.count >= 2 else {
+            dismissSuggestions()
+            return
+        }
+        suggestions = HistoryManager.shared.search(query: query, limit: 8)
+        if suggestions.isEmpty {
+            dismissSuggestions()
+        } else {
+            showSuggestions()
+        }
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.dismissSuggestions()
+        }
+    }
+
+    private func showSuggestions() {
+        if suggestionsWindow == nil {
+            let table = NSTableView()
+            table.headerView = nil
+            table.delegate = self
+            table.dataSource = self
+            table.rowHeight = 28
+            table.intercellSpacing = .zero
+            table.selectionHighlightStyle = .regular
+            table.target = self
+            table.doubleAction = #selector(suggestionDoubleClicked)
+
+            let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("title"))
+            col.isEditable = false
+            table.addTableColumn(col)
+
+            let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+            scroll.documentView = table
+            scroll.hasVerticalScroller = true
+
+            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 400, height: 200),
+                                styleMask: [.borderless, .nonactivatingPanel],
+                                backing: .buffered, defer: true)
+            panel.isFloatingPanel = true
+            panel.level = .popUpMenu
+            panel.hasShadow = true
+            panel.contentView = scroll
+            panel.backgroundColor = .windowBackgroundColor
+
+            suggestionsWindow = panel
+            suggestionsTableView = table
+        }
+
+        guard let panel = suggestionsWindow, let table = suggestionsTableView else { return }
+        table.reloadData()
+
+        let fieldRect = textField.convert(textField.bounds, to: nil)
+        let screenRect = window?.convertToScreen(fieldRect) ?? .zero
+        let height = min(CGFloat(suggestions.count) * 28, 200)
+        panel.setFrame(NSRect(x: screenRect.origin.x, y: screenRect.origin.y - height,
+                              width: screenRect.width, height: height), display: true)
+        panel.orderFront(nil)
+    }
+
+    private func dismissSuggestions() {
+        suggestionsWindow?.orderOut(nil)
+    }
+
+    @objc private func suggestionDoubleClicked() {
+        guard let table = suggestionsTableView, table.clickedRow >= 0, table.clickedRow < suggestions.count else { return }
+        let entry = suggestions[table.clickedRow]
+        textField.stringValue = entry.url
+        dismissSuggestions()
+        delegate?.addressBar(self, didSubmitInput: entry.url)
+    }
+
+    func numberOfRows(in tableView: NSTableView) -> Int { suggestions.count }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        let entry = suggestions[row]
+        let cell = NSTextField(labelWithString: entry.title ?? entry.url)
+        cell.lineBreakMode = .byTruncatingTail
+        cell.font = .systemFont(ofSize: 12)
+        return cell
+    }
+
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { true }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        guard let table = suggestionsTableView, table.selectedRow >= 0, table.selectedRow < suggestions.count else { return }
+        let entry = suggestions[table.selectedRow]
+        textField.stringValue = entry.url
     }
 }
