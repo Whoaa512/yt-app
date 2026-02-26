@@ -466,7 +466,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for (i, tab) in tabManager.tabs.enumerated() {
-            let button = TabBarButton(title: tab.title, index: i, isSuspended: tab.isSuspended, isSelected: i == tabManager.selectedIndex, isPlaying: tab.isPlayingMedia)
+            let button = TabBarButton(title: tab.title, index: i, isSuspended: tab.isSuspended, isSelected: i == tabManager.selectedIndex, isPlaying: tab.isPlayingMedia, url: tab.webView?.url ?? tab.url)
             button.target = self
             button.action = #selector(tabButtonClicked(_:))
             button.closeTarget = self
@@ -1232,10 +1232,13 @@ class TabBarButton: NSView {
     var closeAction: Selector?
     weak var contextMenuTarget: MainWindowController?
 
+    private let faviconView = NSImageView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let closeButton = NSButton()
     private let isSelected: Bool
     private let isSuspended: Bool
+
+    private static var faviconCache: NSImage?
 
     override var tag: Int {
         get { titleLabel.tag }
@@ -1245,7 +1248,7 @@ class TabBarButton: NSView {
         }
     }
 
-    init(title: String, index: Int, isSuspended: Bool, isSelected: Bool, isPlaying: Bool) {
+    init(title: String, index: Int, isSuspended: Bool, isSelected: Bool, isPlaying: Bool, url: URL?) {
         self.isSelected = isSelected
         self.isSuspended = isSuspended
         super.init(frame: .zero)
@@ -1262,10 +1265,22 @@ class TabBarButton: NSView {
         }
         layer?.cornerRadius = 4
 
-        var prefix = ""
-        if isSuspended { prefix = "💤 " }
-        else if isPlaying { prefix = "🔊 " }
-        titleLabel.stringValue = prefix + title
+        faviconView.translatesAutoresizingMaskIntoConstraints = false
+        faviconView.imageScaling = .scaleProportionallyDown
+        faviconView.alphaValue = isSuspended ? 0.4 : 0.8
+
+        if isSuspended {
+            faviconView.image = NSImage(systemSymbolName: "moon.zzz.fill", accessibilityDescription: "Suspended")
+            faviconView.contentTintColor = .secondaryLabelColor
+        } else if isPlaying {
+            faviconView.image = NSImage(systemSymbolName: "speaker.wave.2.fill", accessibilityDescription: "Playing")
+            faviconView.contentTintColor = .systemGreen
+            faviconView.alphaValue = 1.0
+        } else {
+            loadFavicon(for: url)
+        }
+
+        titleLabel.stringValue = title
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.alphaValue = isSuspended ? 0.5 : 1.0
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -1280,6 +1295,7 @@ class TabBarButton: NSView {
         closeButton.target = self
         closeButton.action = #selector(closeClicked)
 
+        addSubview(faviconView)
         addSubview(titleLabel)
         addSubview(closeButton)
 
@@ -1289,7 +1305,12 @@ class TabBarButton: NSView {
             widthAnchor.constraint(greaterThanOrEqualToConstant: 80),
             heightAnchor.constraint(equalToConstant: 26),
 
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            faviconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            faviconView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            faviconView.widthAnchor.constraint(equalToConstant: 14),
+            faviconView.heightAnchor.constraint(equalToConstant: 14),
+
+            titleLabel.leadingAnchor.constraint(equalTo: faviconView.trailingAnchor, constant: 4),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: closeButton.leadingAnchor, constant: -4),
 
@@ -1297,6 +1318,24 @@ class TabBarButton: NSView {
             closeButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 16),
         ])
+
+        func loadFavicon(for url: URL?) {
+            if let cached = TabBarButton.faviconCache {
+                faviconView.image = cached
+                return
+            }
+            guard let host = url?.host else {
+                faviconView.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Web")
+                faviconView.contentTintColor = .secondaryLabelColor
+                return
+            }
+            let faviconURL = URL(string: "https://www.google.com/s2/favicons?domain=\(host)&sz=32")!
+            URLSession.shared.dataTask(with: faviconURL) { [weak self] data, _, _ in
+                guard let data, let image = NSImage(data: data) else { return }
+                TabBarButton.faviconCache = image
+                DispatchQueue.main.async { self?.faviconView.image = image }
+            }.resume()
+        }
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(clicked))
         addGestureRecognizer(click)
