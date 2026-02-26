@@ -1168,6 +1168,23 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
     }
 
+    func shortcutDownloadVideo() {
+        guard let urlStr = tabManager.activeTab?.webView?.url?.absoluteString,
+              urlStr.contains("youtube.com/watch") else {
+            showToast("Not a video page")
+            return
+        }
+        showToast("Downloading…")
+        VideoDownloader.download(url: urlStr) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let path): self?.showToast("Downloaded: \(path)")
+                case .failure(let err): self?.showToast("Download failed: \(err.localizedDescription)")
+                }
+            }
+        }
+    }
+
     func shortcutStartElementPicker() {
         tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytStartElementPicker && window.__ytStartElementPicker()")
     }
@@ -1595,6 +1612,38 @@ class FindBarView: NSView {
     @objc private func dismiss() { onDismiss?() }
 
     override func cancelOperation(_ sender: Any?) { onDismiss?() }
+}
+
+class VideoDownloader {
+    static func download(url: String, completion: @escaping (Result<String, Error>) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!.path
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["yt-dlp", "-o", "\(downloadsDir)/%(title)s.%(ext)s", "--no-playlist", url]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+            do {
+                try process.run()
+                process.waitUntilExit()
+                if process.terminationStatus == 0 {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let output = String(data: data, encoding: .utf8) ?? ""
+                    let filename = output.components(separatedBy: "\n")
+                        .last(where: { $0.contains("Destination:") || $0.contains("has already been downloaded") })?
+                        .components(separatedBy: "/").last ?? "video"
+                    completion(.success(filename))
+                } else {
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+                    completion(.failure(NSError(domain: "YTApp", code: 1, userInfo: [NSLocalizedDescriptionKey: msg])))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }
+    }
 }
 
 class ToastView: NSView {
