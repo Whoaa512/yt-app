@@ -512,7 +512,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     // MARK: - Tab Bar UI
 
-    private func rebuildTabBar() {
+    func rebuildTabBar() {
         tabStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         for (i, tab) in tabManager.tabs.enumerated() {
@@ -1385,9 +1385,12 @@ class TabBarButton: NSView {
         }
     }
 
+    var tabIndex: Int = 0
+
     init(title: String, index: Int, isSuspended: Bool, isSelected: Bool, isPlaying: Bool, url: URL?) {
         self.isSelected = isSelected
         self.isSuspended = isSuspended
+        self.tabIndex = index
         super.init(frame: .zero)
 
         wantsLayer = true
@@ -1459,9 +1462,27 @@ class TabBarButton: NSView {
 
         let click = NSClickGestureRecognizer(target: self, action: #selector(clicked))
         addGestureRecognizer(click)
+
+        registerForDraggedTypes([.string])
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    override func mouseDragged(with event: NSEvent) {
+        let item = NSDraggingItem(pasteboardWriter: NSString(string: "\(tabIndex)"))
+        item.setDraggingFrame(bounds, contents: snapshot())
+        beginDraggingSession(with: [item], event: event, source: self)
+    }
+
+    private func snapshot() -> NSImage {
+        let image = NSImage(size: bounds.size)
+        image.lockFocus()
+        if let ctx = NSGraphicsContext.current?.cgContext {
+            layer?.render(in: ctx)
+        }
+        image.unlockFocus()
+        return image
+    }
 
     private func loadFavicon(for url: URL?) {
         if let cached = TabBarButton.faviconCache {
@@ -1557,6 +1578,35 @@ class TabBarButton: NSView {
 
     override func mouseExited(with event: NSEvent) {
         closeButton.alphaValue = 0.5
+    }
+}
+
+extension TabBarButton: NSDraggingSource {
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .withinApplication ? .move : []
+    }
+}
+
+extension TabBarButton {
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        layer?.borderWidth = 2
+        layer?.borderColor = NSColor.controlAccentColor.cgColor
+        return .move
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        layer?.borderWidth = 0
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        layer?.borderWidth = 0
+        guard let str = sender.draggingPasteboard.string(forType: .string),
+              let fromIndex = Int(str) else { return false }
+        let toIndex = tabIndex
+        guard fromIndex != toIndex else { return false }
+        contextMenuTarget?.tabManager.moveTab(from: fromIndex, to: toIndex)
+        contextMenuTarget?.rebuildTabBar()
+        return true
     }
 }
 
