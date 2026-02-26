@@ -157,7 +157,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         darkFlashOverlay.translatesAutoresizingMaskIntoConstraints = false
         darkFlashOverlay.wantsLayer = true
-        darkFlashOverlay.layer?.backgroundColor = NSColor(named: "AccentColor") != nil ? NSColor.windowBackgroundColor.cgColor : NSColor.black.cgColor
         darkFlashOverlay.layer?.backgroundColor = NSColor.black.cgColor
         darkFlashOverlay.alphaValue = 0
         darkFlashOverlay.layer?.zPosition = 100
@@ -405,7 +404,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         bar.translatesAutoresizingMaskIntoConstraints = false
         bar.onSearch = { [weak self] query in
             self?.tabManager.activeTab?.webView?.evaluateJavaScript(
-                "window.find('\(query.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\"))', false, false, true)"
+                "window.find('\(query.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'"))', false, false, true)"
             )
         }
         bar.onDismiss = { [weak self] in
@@ -1952,18 +1951,16 @@ class VideoDownloader {
             process.standardError = pipe
             do {
                 try process.run()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 process.waitUntilExit()
+                let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus == 0 {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    let output = String(data: data, encoding: .utf8) ?? ""
                     let filename = output.components(separatedBy: "\n")
                         .last(where: { $0.contains("Destination:") || $0.contains("has already been downloaded") })?
                         .components(separatedBy: "/").last ?? "video"
                     completion(.success(filename))
                 } else {
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                    let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
-                    completion(.failure(NSError(domain: "YTApp", code: 1, userInfo: [NSLocalizedDescriptionKey: msg])))
+                    completion(.failure(NSError(domain: "YTApp", code: 1, userInfo: [NSLocalizedDescriptionKey: output])))
                 }
             } catch {
                 completion(.failure(error))

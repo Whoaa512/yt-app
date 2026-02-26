@@ -131,7 +131,7 @@ class HistoryManager {
 
     func savePlaybackPosition(url: String, position: Double) {
         guard let db = db else { return }
-        let sql = "UPDATE history SET playback_position = ? WHERE url = ? ORDER BY visited_at DESC LIMIT 1"
+        let sql = "UPDATE history SET playback_position = ? WHERE id = (SELECT id FROM history WHERE url = ? ORDER BY visited_at DESC LIMIT 1)"
         var stmt: OpaquePointer?
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
             sqlite3_bind_double(stmt, 1, position)
