@@ -924,9 +924,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                     duration: duration, currentTime: currentTime, paused: paused
                 )
                 toolbar.updateNowPlaying(title: title, channel: channel)
+                toolbar.updateSeekPosition(currentTime: currentTime, duration: duration)
             } else {
                 MediaKeyHandler.shared.clearNowPlaying()
                 toolbar.clearNowPlaying()
+                toolbar.hideSeek()
             }
 
             // Auto-play next in queue when video ends
@@ -998,6 +1000,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             applyPlaybackRate(rate, to: tab)
             showToast("Speed: \(playbackRateText(rate))x")
         }
+    }
+
+    func toolbar(_ toolbar: ToolbarView, didSeekTo fraction: Double) {
+        tabManager.activeTab?.webView?.evaluateJavaScript("""
+            (function() { const v = document.querySelector('video'); if (v && v.duration) v.currentTime = v.duration * \(fraction); })()
+        """)
     }
 
     func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float) {

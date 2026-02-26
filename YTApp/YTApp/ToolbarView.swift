@@ -10,6 +10,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float)
     func toolbarResetSpeed(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float)
+    func toolbar(_ toolbar: ToolbarView, didSeekTo fraction: Double)
 }
 
 class ToolbarView: NSView, NSTextFieldDelegate {
@@ -22,6 +23,9 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private var resetBtn: NSButton!
     private let nowPlayingLabel = NSTextField(labelWithString: "")
     private let volumeSlider = NSSlider()
+    private let seekSlider = NSSlider()
+    private let seekTimeLabel = NSTextField(labelWithString: "")
+    private var currentDuration: Double = 0
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -155,6 +159,23 @@ class ToolbarView: NSView, NSTextFieldDelegate {
 
         addSubview(centerStack)
 
+        seekSlider.translatesAutoresizingMaskIntoConstraints = false
+        seekSlider.minValue = 0
+        seekSlider.maxValue = 1
+        seekSlider.doubleValue = 0
+        seekSlider.target = self
+        seekSlider.action = #selector(seekChanged)
+        seekSlider.isContinuous = true
+        seekSlider.controlSize = .mini
+        seekSlider.alphaValue = 0
+        addSubview(seekSlider)
+
+        seekTimeLabel.translatesAutoresizingMaskIntoConstraints = false
+        seekTimeLabel.font = .monospacedDigitSystemFont(ofSize: 9, weight: .medium)
+        seekTimeLabel.textColor = .tertiaryLabelColor
+        seekTimeLabel.alphaValue = 0
+        addSubview(seekTimeLabel)
+
         nowPlayingLabel.translatesAutoresizingMaskIntoConstraints = false
         nowPlayingLabel.font = .systemFont(ofSize: 11, weight: .regular)
         nowPlayingLabel.textColor = .tertiaryLabelColor
@@ -174,6 +195,12 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         NSLayoutConstraint.activate([
             centerStack.centerXAnchor.constraint(equalTo: centerXAnchor),
             centerStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            seekSlider.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            seekSlider.widthAnchor.constraint(equalToConstant: 120),
+            seekSlider.centerYAnchor.constraint(equalTo: centerYAnchor),
+            seekTimeLabel.leadingAnchor.constraint(equalTo: seekSlider.trailingAnchor, constant: 4),
+            seekTimeLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
             nowPlayingLabel.leadingAnchor.constraint(greaterThanOrEqualTo: centerStack.trailingAnchor, constant: 12),
             nowPlayingLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -12),
@@ -244,6 +271,30 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         }
     }
 
+    func updateSeekPosition(currentTime: Double, duration: Double) {
+        currentDuration = duration
+        guard duration > 0 else {
+            seekSlider.alphaValue = 0
+            seekTimeLabel.alphaValue = 0
+            return
+        }
+        seekSlider.alphaValue = 1
+        seekTimeLabel.alphaValue = 1
+        seekSlider.doubleValue = currentTime / duration
+        seekTimeLabel.stringValue = "\(formatTime(currentTime)) / \(formatTime(duration))"
+    }
+
+    func hideSeek() {
+        seekSlider.alphaValue = 0
+        seekTimeLabel.alphaValue = 0
+    }
+
+    private func formatTime(_ t: Double) -> String {
+        let m = Int(t) / 60
+        let s = Int(t) % 60
+        return String(format: "%d:%02d", m, s)
+    }
+
     func updatePlaybackRate(_ rate: Float, pinned: Bool = false) {
         currentRate = rate
         rateField.stringValue = pinned ? "📌 \(formatRate(rate))" : formatRate(rate)
@@ -276,6 +327,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     @objc private func doPlayPause() { delegate?.toolbarPlayPause(self) }
     @objc private func prevTrack() { delegate?.toolbarPrevTrack(self) }
     @objc private func nextTrack() { delegate?.toolbarNextTrack(self) }
+
+    @objc private func seekChanged() {
+        delegate?.toolbar(self, didSeekTo: seekSlider.doubleValue)
+    }
 
     @objc private func volumeChanged() {
         delegate?.toolbar(self, didChangeVolume: Float(volumeSlider.doubleValue))
