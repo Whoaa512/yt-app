@@ -982,6 +982,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
     }
 
+    func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float) {
+        tabManager.activeTab?.webView?.evaluateJavaScript(
+            "document.querySelector('video').volume = \(volume)"
+        )
+    }
+
     func toolbarResetSpeed(_ toolbar: ToolbarView) {
         guard let tab = tabManager.activeTab else { return }
         if tab.isPinnedSpeed { return }

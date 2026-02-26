@@ -9,6 +9,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbarNextTrack(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float)
     func toolbarResetSpeed(_ toolbar: ToolbarView)
+    func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float)
 }
 
 class ToolbarView: NSView, NSTextFieldDelegate {
@@ -20,6 +21,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private var hoverButtons: [ToolbarButton] = []
     private var resetBtn: NSButton!
     private let nowPlayingLabel = NSTextField(labelWithString: "")
+    private let volumeSlider = NSSlider()
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -119,8 +121,33 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         let sep1 = makeDot()
         let sep2 = makeDot()
 
+        // Volume
+        let volIcon = NSImageView()
+        volIcon.image = NSImage(systemSymbolName: "speaker.wave.2.fill", accessibilityDescription: "Volume")
+        volIcon.contentTintColor = .tertiaryLabelColor
+        volIcon.translatesAutoresizingMaskIntoConstraints = false
+        volIcon.widthAnchor.constraint(equalToConstant: 14).isActive = true
+
+        volumeSlider.translatesAutoresizingMaskIntoConstraints = false
+        volumeSlider.minValue = 0
+        volumeSlider.maxValue = 1
+        volumeSlider.doubleValue = 1
+        volumeSlider.target = self
+        volumeSlider.action = #selector(volumeChanged)
+        volumeSlider.isContinuous = true
+        volumeSlider.controlSize = .mini
+
+        let volStack = NSStackView(views: [volIcon, volumeSlider])
+        volStack.orientation = .horizontal
+        volStack.spacing = 2
+        volStack.alignment = .centerY
+        volStack.translatesAutoresizingMaskIntoConstraints = false
+        volumeSlider.widthAnchor.constraint(equalToConstant: 60).isActive = true
+
+        let sep3 = makeDot()
+
         // Center container
-        let centerStack = NSStackView(views: [navStack, sep1, playStack, sep2, speedStack])
+        let centerStack = NSStackView(views: [navStack, sep1, playStack, sep2, speedStack, sep3, volStack])
         centerStack.orientation = .horizontal
         centerStack.spacing = 10
         centerStack.alignment = .centerY
@@ -249,6 +276,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     @objc private func doPlayPause() { delegate?.toolbarPlayPause(self) }
     @objc private func prevTrack() { delegate?.toolbarPrevTrack(self) }
     @objc private func nextTrack() { delegate?.toolbarNextTrack(self) }
+
+    @objc private func volumeChanged() {
+        delegate?.toolbar(self, didChangeVolume: Float(volumeSlider.doubleValue))
+    }
 
     @objc private func rateDown() {
         let newRate = max(0.25, currentRate - 0.25)
