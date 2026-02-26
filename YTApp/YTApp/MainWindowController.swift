@@ -569,6 +569,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
 
         guard let wv = tab.webView else { return }
+
+        if tab.url.absoluteString == "https://www.youtube.com" || tab.url.absoluteString == "https://www.youtube.com/" {
+            if wv.url == nil {
+                let ntp = NewTabPageView()
+                ntp.translatesAutoresizingMaskIntoConstraints = false
+                ntp.onNavigate = { [weak self] url in
+                    tab.webView?.load(URLRequest(url: url))
+                }
+                webViewContainer.addSubview(ntp, positioned: .below, relativeTo: darkFlashOverlay)
+                NSLayoutConstraint.activate([
+                    ntp.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                    ntp.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                    ntp.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                    ntp.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+                ])
+            }
+        }
+
         wv.translatesAutoresizingMaskIntoConstraints = false
         wv.alphaValue = 0
         webViewContainer.addSubview(wv, positioned: .below, relativeTo: darkFlashOverlay)
@@ -1710,6 +1728,155 @@ class FindBarView: NSView {
     @objc private func dismiss() { onDismiss?() }
 
     override func cancelOperation(_ sender: Any?) { onDismiss?() }
+}
+
+class NewTabPageView: NSView {
+    var onNavigate: ((URL) -> Void)?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor(white: 0.08, alpha: 1).cgColor
+        setupContent()
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setupContent() {
+        let scrollView = NSScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.hasVerticalScroller = true
+        scrollView.drawsBackground = false
+
+        let container = NSStackView()
+        container.orientation = .vertical
+        container.alignment = .leading
+        container.spacing = 16
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.edgeInsets = NSEdgeInsets(top: 40, left: 40, bottom: 40, right: 40)
+
+        let titleLabel = NSTextField(labelWithString: "New Tab")
+        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = .white
+        container.addArrangedSubview(titleLabel)
+
+        let recentHistory = HistoryManager.shared.search(limit: 12)
+        if !recentHistory.isEmpty {
+            let sectionLabel = NSTextField(labelWithString: "Recent")
+            sectionLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+            sectionLabel.textColor = .secondaryLabelColor
+            container.addArrangedSubview(sectionLabel)
+
+            let grid = NSStackView()
+            grid.orientation = .vertical
+            grid.spacing = 2
+            grid.translatesAutoresizingMaskIntoConstraints = false
+
+            for entry in recentHistory {
+                let row = NewTabRow(title: entry.title ?? "Untitled", subtitle: entry.url)
+                row.onTap = { [weak self] in
+                    if let url = URL(string: entry.url) { self?.onNavigate?(url) }
+                }
+                grid.addArrangedSubview(row)
+            }
+            container.addArrangedSubview(grid)
+        }
+
+        let queueItems = QueueManager.shared.items
+        if !queueItems.isEmpty {
+            let qLabel = NSTextField(labelWithString: "Queue")
+            qLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+            qLabel.textColor = .secondaryLabelColor
+            container.addArrangedSubview(qLabel)
+
+            let qGrid = NSStackView()
+            qGrid.orientation = .vertical
+            qGrid.spacing = 2
+
+            for item in queueItems.prefix(8) {
+                let row = NewTabRow(title: item.title, subtitle: item.channel)
+                row.onTap = { [weak self] in self?.onNavigate?(item.watchURL) }
+                qGrid.addArrangedSubview(row)
+            }
+            container.addArrangedSubview(qGrid)
+        }
+
+        let goYT = NSButton(title: "Go to YouTube →", target: self, action: #selector(goToYouTube))
+        goYT.bezelStyle = .recessed
+        goYT.contentTintColor = .controlAccentColor
+        container.addArrangedSubview(goYT)
+
+        scrollView.documentView = container
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            container.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+        ])
+    }
+
+    @objc private func goToYouTube() {
+        onNavigate?(URL(string: "https://www.youtube.com")!)
+    }
+}
+
+class NewTabRow: NSView {
+    var onTap: (() -> Void)?
+
+    init(title: String, subtitle: String) {
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        wantsLayer = true
+        layer?.cornerRadius = 6
+
+        let titleField = NSTextField(labelWithString: title)
+        titleField.font = .systemFont(ofSize: 13, weight: .medium)
+        titleField.textColor = .white
+        titleField.lineBreakMode = .byTruncatingTail
+        titleField.translatesAutoresizingMaskIntoConstraints = false
+
+        let subField = NSTextField(labelWithString: subtitle)
+        subField.font = .systemFont(ofSize: 10)
+        subField.textColor = .tertiaryLabelColor
+        subField.lineBreakMode = .byTruncatingTail
+        subField.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(titleField)
+        addSubview(subField)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 36),
+            widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            titleField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            titleField.topAnchor.constraint(equalTo: topAnchor, constant: 3),
+            titleField.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+            subField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            subField.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -3),
+            subField.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -10),
+        ])
+
+        let click = NSClickGestureRecognizer(target: self, action: #selector(tapped))
+        addGestureRecognizer(click)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func tapped() { onTap?() }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach { removeTrackingArea($0) }
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.white.withAlphaComponent(0.06).cgColor
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
 }
 
 class VideoDownloader {
