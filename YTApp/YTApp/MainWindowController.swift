@@ -512,22 +512,28 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         UserDefaults.standard.set(NSStringFromRect(frame), forKey: "windowFrame")
 
         // Save tabs
-        let tabData = tabManager.tabs.map { tab -> [String: String] in
+        let tabData = tabManager.tabs.map { tab -> [String: Any] in
             let url = tab.webView?.url ?? tab.url
             let title = tab.webView?.title ?? tab.title
-            return ["url": url.absoluteString, "title": title]
+            var d: [String: Any] = ["url": url.absoluteString, "title": title]
+            if tab.isPinnedSpeed { d["pinnedSpeed"] = true }
+            return d
         }
         UserDefaults.standard.set(tabData, forKey: "savedTabs")
         UserDefaults.standard.set(tabManager.selectedIndex, forKey: "savedTabSelectedIndex")
     }
 
     private func restoreTabs() {
-        if let tabData = UserDefaults.standard.array(forKey: "savedTabs") as? [[String: String]], !tabData.isEmpty {
+        if let tabData = UserDefaults.standard.array(forKey: "savedTabs") as? [[String: Any]], !tabData.isEmpty {
             for entry in tabData {
-                if let urlStr = entry["url"], let url = URL(string: urlStr) {
+                if let urlStr = entry["url"] as? String, let url = URL(string: urlStr) {
                     let tab = tabManager.addTab(url: url)
-                    if let title = entry["title"], !title.isEmpty {
+                    if let title = entry["title"] as? String, !title.isEmpty {
                         tab.title = title
+                    }
+                    if entry["pinnedSpeed"] as? Bool == true {
+                        tab.isPinnedSpeed = true
+                        tab.playbackRate = 1.0
                     }
                 }
             }
@@ -732,6 +738,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         // Apply saved playback rate and theater mode on watch pages
         if let url = webView.url, url.absoluteString.contains("youtube.com") {
             applyPlaybackSettings(to: webView)
+            if url.absoluteString.contains("/watch") {
+                resumePlaybackIfNeeded(url: url, webView: webView)
+            }
         }
     }
 
