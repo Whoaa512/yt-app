@@ -4,7 +4,7 @@ import WebKit
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
-    KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate {
+    KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -239,6 +239,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About YTApp", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit YTApp", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
@@ -318,7 +320,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         mainMenu.addItem(devMenuItem)
 
         let pluginMenu = NSMenu(title: "Plugins")
-        pluginMenu.addItem(withTitle: "Manage Plugins…", action: #selector(showPluginSettings), keyEquivalent: ",")
+        pluginMenu.addItem(withTitle: "Manage Plugins…", action: #selector(showPluginSettings), keyEquivalent: "")
         let openPluginDir = NSMenuItem(title: "Open Plugin Folder", action: #selector(openPluginFolder), keyEquivalent: "")
         pluginMenu.addItem(openPluginDir)
         pluginMenu.addItem(.separator())
@@ -1209,6 +1211,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     @objc func reloadAllPlugins() {
         PluginManager.shared.reload()
     }
+
+    @objc func showSettings() {
+        let vc = SettingsViewController()
+        vc.settingsDelegate = self
+        presentAsSheet(vc)
+    }
+
+    func settingsDidChange() {}
 
     @objc func showPluginSettings() {
         let vc = PluginSettingsViewController()
