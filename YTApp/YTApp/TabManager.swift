@@ -139,8 +139,9 @@ class TabManager {
     }
 
     @discardableResult
-    func addTab(url: URL = URL(string: "https://www.youtube.com")!, select: Bool = true) -> Tab {
+    func addTab(url: URL = URL(string: "https://www.youtube.com")!, select: Bool = true, suspended: Bool = false) -> Tab {
         let tab = Tab(url: url)
+        if suspended { tab.isSuspended = true }
         tabs.append(tab)
         let index = tabs.count - 1
         delegate?.tabManager(self, didAddTab: tab, at: index)

@@ -583,6 +583,16 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
     }
 
+    private func scrollTabBarToEnd() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let docView = self.tabBarScrollView.documentView else { return }
+            let maxX = docView.frame.width - self.tabBarScrollView.contentSize.width
+            if maxX > 0 {
+                self.tabBarScrollView.contentView.scroll(to: NSPoint(x: maxX, y: 0))
+            }
+        }
+    }
+
     @objc private func tabButtonClicked(_ sender: NSButton) {
         tabManager.selectTab(at: sender.tag)
     }
@@ -714,12 +724,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
 
         if URLRouter.isAllowed(url) {
-            // Cmd+click, middle-click, or three-finger tap → new tab
+            // Cmd+click, middle-click, or three-finger tap → background tab
             if navigationAction.modifierFlags.contains(.command) ||
                 navigationAction.buttonNumber == 1 ||
                 navigationAction.buttonNumber == 2 {
                 decisionHandler(.cancel)
-                tabManager.addTab(url: url)
+                tabManager.addTab(url: url, select: false, suspended: true)
+                scrollTabBarToEnd()
                 return
             }
             decisionHandler(.allow)
@@ -846,7 +857,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
-            tabManager.addTab(url: url)
+            tabManager.addTab(url: url, select: false, suspended: true)
+            scrollTabBarToEnd()
         }
         return nil
     }
