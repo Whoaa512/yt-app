@@ -58,6 +58,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         window.minSize = NSSize(width: 600, height: 400)
         window.titlebarAppearsTransparent = false
         window.isReleasedWhenClosed = false
+        window.collectionBehavior = [.fullScreenPrimary]
 
         super.init(window: window)
         window.delegate = self
