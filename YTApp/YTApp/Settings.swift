@@ -43,6 +43,29 @@ struct Settings {
         get { defaults.bool(forKey: "forceTheaterMode") }
         set { defaults.set(newValue, forKey: "forceTheaterMode") }
     }
+
+    static var channelSpeeds: [String: Float] {
+        get { defaults.dictionary(forKey: "channelSpeeds") as? [String: Float] ?? [:] }
+        set { defaults.set(newValue, forKey: "channelSpeeds") }
+    }
+
+    static func speedForChannel(_ channel: String) -> Float? {
+        guard !channel.isEmpty else { return nil }
+        return channelSpeeds[channel]
+    }
+
+    static func setSpeedForChannel(_ channel: String, speed: Float) {
+        guard !channel.isEmpty else { return }
+        var speeds = channelSpeeds
+        speeds[channel] = speed
+        channelSpeeds = speeds
+    }
+
+    static func removeSpeedForChannel(_ channel: String) {
+        var speeds = channelSpeeds
+        speeds.removeValue(forKey: channel)
+        channelSpeeds = speeds
+    }
 }
 
 private extension Int {

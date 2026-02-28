@@ -66,7 +66,7 @@ class KeyboardShortcutHandler {
         Shortcut(key: "gh", label: "Show history", category: "Panels"),
         // Other
         // Suspension
-        Shortcut(key: "gp", label: "Pin tab speed to 1×", category: "Playback"),
+        Shortcut(key: "gp", label: "Pin speed to channel", category: "Playback"),
         Shortcut(key: "gi", label: "Toggle Picture-in-Picture", category: "Playback"),
         Shortcut(key: "gs", label: "Suspend / unsuspend tab", category: "Tabs"),
         Shortcut(key: "gS", label: "Suspend other tabs", category: "Tabs"),

@@ -524,7 +524,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             let url = tab.webView?.url ?? tab.url
             let title = tab.webView?.title ?? tab.title
             var d: [String: Any] = ["url": url.absoluteString, "title": title]
-            if tab.isPinnedSpeed { d["pinnedSpeed"] = true }
+            if let ch = tab.pinnedChannel { d["pinnedChannel"] = ch }
             return d
         }
         UserDefaults.standard.set(tabData, forKey: "savedTabs")
@@ -540,9 +540,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 if let title = entry["title"] as? String, !title.isEmpty {
                     tab.title = title
                 }
-                if entry["pinnedSpeed"] as? Bool == true {
-                    tab.isPinnedSpeed = true
-                    tab.playbackRate = 1.0
+                if let ch = entry["pinnedChannel"] as? String {
+                    tab.pinnedChannel = ch
+                    if let speed = Settings.speedForChannel(ch) {
+                        tab.playbackRate = speed
+                    }
                 }
                 if i != savedIndex {
                     tab.isSuspended = true
@@ -698,7 +700,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         observeLoadingProgress(for: tab.webView)
         rebuildTabBar()
         window?.title = tab.title
-        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
+        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.pinnedChannel)
         applyPlaybackRate(tab.playbackRate, to: tab)
     }
 
@@ -969,6 +971,26 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         guard let webView = message.webView, let tab = tabForWebView(webView) else { return }
 
+        let channel = json["channel"] as? String ?? ""
+        if !channel.isEmpty && channel != tab.currentChannel {
+            tab.currentChannel = channel
+            if let speed = Settings.speedForChannel(channel) {
+                tab.pinnedChannel = channel
+                tab.playbackRate = speed
+                applyPlaybackRate(speed, to: tab)
+                if tab.id == tabManager.activeTab?.id {
+                    toolbar.updatePlaybackRate(speed, pinned: channel)
+                }
+            } else if tab.pinnedChannel != nil {
+                tab.pinnedChannel = nil
+                tab.playbackRate = Settings.defaultPlaybackRate
+                applyPlaybackRate(tab.playbackRate, to: tab)
+                if tab.id == tabManager.activeTab?.id {
+                    toolbar.updatePlaybackRate(tab.playbackRate, pinned: nil)
+                }
+            }
+        }
+
         let paused = json["paused"] as? Bool ?? true
         let ended = json["ended"] as? Bool ?? false
         let wasPlaying = tab.isPlayingMedia
@@ -1078,9 +1100,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float) {
         if let tab = tabManager.activeTab {
-            if tab.isPinnedSpeed {
-                tab.isPinnedSpeed = false
-                toolbar.updatePlaybackRate(rate, pinned: false)
+            if tab.pinnedChannel != nil {
+                tab.pinnedChannel = nil
+                toolbar.updatePlaybackRate(rate, pinned: nil)
             }
             tab.playbackRate = rate
             applyPlaybackRate(rate, to: tab)
@@ -1102,7 +1124,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func toolbarResetSpeed(_ toolbar: ToolbarView) {
         guard let tab = tabManager.activeTab else { return }
-        if tab.isPinnedSpeed { return }
+        if tab.pinnedChannel != nil { return }
         let defaultRate = Settings.defaultPlaybackRate
         let rate: Float = (defaultRate != 1.0 && tab.playbackRate != 1.0) ? 1.0 : defaultRate
         tab.playbackRate = rate
@@ -1301,17 +1323,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func shortcutTogglePinSpeed() {
         guard let tab = tabManager.activeTab else { return }
-        tab.isPinnedSpeed.toggle()
-        if tab.isPinnedSpeed {
-            tab.playbackRate = 1.0
-            applyPlaybackRate(1.0, to: tab)
-            showToast("Speed pinned to 1×")
-        } else {
+        let channel = tab.currentChannel
+        guard !channel.isEmpty else {
+            showToast("No channel detected")
+            return
+        }
+
+        if tab.pinnedChannel != nil {
+            Settings.removeSpeedForChannel(channel)
+            tab.pinnedChannel = nil
             tab.playbackRate = Settings.defaultPlaybackRate
             applyPlaybackRate(tab.playbackRate, to: tab)
-            showToast("Speed unpinned")
+            showToast("Speed unpinned for \(channel)")
+        } else {
+            let rate = tab.playbackRate
+            Settings.setSpeedForChannel(channel, speed: rate)
+            tab.pinnedChannel = channel
+            showToast("📌 \(playbackRateText(rate))× for \(channel)")
         }
-        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.isPinnedSpeed)
+        toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.pinnedChannel)
     }
 
     func shortcutDownloadVideo() {

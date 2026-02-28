@@ -295,10 +295,10 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         return String(format: "%d:%02d", m, s)
     }
 
-    func updatePlaybackRate(_ rate: Float, pinned: Bool = false) {
+    func updatePlaybackRate(_ rate: Float, pinned: String? = nil) {
         currentRate = rate
-        rateField.stringValue = pinned ? "📌 \(formatRate(rate))" : formatRate(rate)
-        rateField.toolTip = pinned ? "Speed pinned to \(formatRate(rate))" : nil
+        rateField.stringValue = pinned != nil ? "📌 \(formatRate(rate))" : formatRate(rate)
+        rateField.toolTip = pinned.map { "Speed pinned to \(formatRate(rate)) for \($0)" }
         updateResetButtonTooltip()
     }
 
