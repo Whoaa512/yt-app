@@ -958,7 +958,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "newTab" {
             if let urlString = message.body as? String, let url = URL(string: urlString) {
-                tabManager.addTab(url: url)
+                if Settings.treeTabsEnabled, let parent = tabManager.activeTab {
+                    tabManager.addChildTab(url: url, parent: parent, select: true, suspended: false)
+                } else {
+                    tabManager.addTab(url: url)
+                }
             }
             return
         }
@@ -1264,7 +1268,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func addressBar(_ bar: AddressBarView, navigateTo url: URL, inNewTab: Bool) {
         if inNewTab {
-            tabManager.addTab(url: url)
+            if Settings.treeTabsEnabled, let parent = tabManager.activeTab {
+                tabManager.addChildTab(url: url, parent: parent, select: true, suspended: false)
+            } else {
+                tabManager.addTab(url: url)
+            }
         } else {
             tabManager.activeTab?.webView?.load(URLRequest(url: url))
         }
