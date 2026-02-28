@@ -149,9 +149,34 @@ class TabManager {
         return tab
     }
 
+    @discardableResult
+    func addChildTab(url: URL, parent: Tab, select: Bool = false, suspended: Bool = true) -> Tab {
+        let tab = Tab(url: url)
+        if suspended { tab.isSuspended = true }
+        parent.addChild(tab)
+
+        let parentIndex = tabs.firstIndex(where: { $0.id == parent.id }) ?? tabs.count - 1
+        let insertIndex = parentIndex + 1 + parent.allDescendants().count - 1
+        let clampedIndex = min(insertIndex, tabs.count)
+        tabs.insert(tab, at: clampedIndex)
+
+        delegate?.tabManager(self, didAddTab: tab, at: clampedIndex)
+        if selectedIndex >= clampedIndex { selectedIndex += 1 }
+        if select { selectTab(at: clampedIndex) }
+        return tab
+    }
+
     func closeTab(at index: Int) {
         guard index >= 0 && index < tabs.count else { return }
         let tab = tabs[index]
+
+        for child in tab.children {
+            child.parent = tab.parent
+            tab.parent?.children.append(child)
+        }
+        tab.parent?.removeChild(tab)
+        tab.children.removeAll()
+
         tab.webView = nil
         tabs.remove(at: index)
         delegate?.tabManager(self, didRemoveTabAt: index)
@@ -162,6 +187,37 @@ class TabManager {
             let newIndex = min(index, tabs.count - 1)
             selectTab(at: newIndex)
         }
+    }
+
+    func closeTabWithChildren(at index: Int) {
+        guard index >= 0 && index < tabs.count else { return }
+        let tab = tabs[index]
+        let descendants = tab.allDescendants()
+
+        tab.parent?.removeChild(tab)
+
+        var indicesToRemove = [index]
+        for desc in descendants {
+            if let i = tabs.firstIndex(where: { $0.id == desc.id }) {
+                indicesToRemove.append(i)
+            }
+        }
+        for i in indicesToRemove.sorted().reversed() {
+            tabs[i].webView = nil
+            tabs.remove(at: i)
+            delegate?.tabManager(self, didRemoveTabAt: i)
+        }
+
+        if tabs.isEmpty {
+            addTab()
+        } else {
+            let newIndex = min(index, tabs.count - 1)
+            selectTab(at: newIndex)
+        }
+    }
+
+    var rootTabs: [Tab] {
+        tabs.filter { $0.parent == nil }
     }
 
     func selectTab(at index: Int) {

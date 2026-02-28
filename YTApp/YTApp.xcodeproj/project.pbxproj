@@ -41,6 +41,7 @@
 		AA000031 /* PluginSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000033; };
 		AA000032 /* SuspendedTabOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000034; };
 		AA000033 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000035; };
+		AA000034 /* TreeTabSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000036; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +81,7 @@
 		BB000033 /* PluginSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginSettingsViewController.swift; sourceTree = "<group>"; };
 		BB000034 /* SuspendedTabOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuspendedTabOverlay.swift; sourceTree = "<group>"; };
 		BB000035 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		BB000036 /* TreeTabSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeTabSidebarView.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -129,6 +131,7 @@
 				BB000033 /* PluginSettingsViewController.swift */,
 				BB000034 /* SuspendedTabOverlay.swift */,
 				BB000035 /* SettingsViewController.swift */,
+				BB000036 /* TreeTabSidebarView.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -266,6 +269,7 @@
 				AA000031 /* PluginSettingsViewController.swift in Sources */,
 				AA000032 /* SuspendedTabOverlay.swift in Sources */,
 				AA000033 /* SettingsViewController.swift in Sources */,
+				AA000034 /* TreeTabSidebarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

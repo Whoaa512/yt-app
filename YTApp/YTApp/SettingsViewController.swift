@@ -8,10 +8,12 @@ class SettingsViewController: NSViewController {
     weak var settingsDelegate: SettingsDelegate?
 
     private let queueToggle = NSSwitch()
+    private let treeTabsToggle = NSSwitch()
+    private let treeTabsSidePopup = NSPopUpButton()
     private var needsRestart = false
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
     }
 
     override func viewDidLoad() {
@@ -34,6 +36,41 @@ class SettingsViewController: NSViewController {
             isOn: Settings.queueEnabled,
             action: #selector(queueToggled)
         )
+
+        // Tree tabs toggle
+        let treeTabsRow = makeToggleRow(
+            label: "Tree Style Tabs",
+            subtitle: "Nested tab sidebar, middle-click opens as child",
+            toggle: treeTabsToggle,
+            isOn: Settings.treeTabsEnabled,
+            action: #selector(treeTabsToggled)
+        )
+
+        // Tree tabs side picker
+        let sideRow = NSView()
+        sideRow.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(sideRow)
+
+        let sideLabel = NSTextField(labelWithString: "Tree Tabs Side")
+        sideLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        sideLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        treeTabsSidePopup.addItems(withTitles: ["Right", "Left"])
+        treeTabsSidePopup.selectItem(withTitle: Settings.treeTabsSide == .left ? "Left" : "Right")
+        treeTabsSidePopup.target = self
+        treeTabsSidePopup.action = #selector(treeTabsSideChanged)
+        treeTabsSidePopup.translatesAutoresizingMaskIntoConstraints = false
+
+        sideRow.addSubview(sideLabel)
+        sideRow.addSubview(treeTabsSidePopup)
+
+        NSLayoutConstraint.activate([
+            sideLabel.topAnchor.constraint(equalTo: sideRow.topAnchor),
+            sideLabel.leadingAnchor.constraint(equalTo: sideRow.leadingAnchor),
+            sideLabel.bottomAnchor.constraint(equalTo: sideRow.bottomAnchor),
+            treeTabsSidePopup.centerYAnchor.constraint(equalTo: sideRow.centerYAnchor),
+            treeTabsSidePopup.trailingAnchor.constraint(equalTo: sideRow.trailingAnchor),
+        ])
 
         let restartNote = NSTextField(labelWithString: "")
         restartNote.font = .systemFont(ofSize: 11)
@@ -59,7 +96,15 @@ class SettingsViewController: NSViewController {
             queueRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             queueRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            restartNote.topAnchor.constraint(equalTo: queueRow.bottomAnchor, constant: 12),
+            treeTabsRow.topAnchor.constraint(equalTo: queueRow.bottomAnchor, constant: 16),
+            treeTabsRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            treeTabsRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+            sideRow.topAnchor.constraint(equalTo: treeTabsRow.bottomAnchor, constant: 12),
+            sideRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            sideRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+            restartNote.topAnchor.constraint(equalTo: sideRow.bottomAnchor, constant: 12),
             restartNote.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
 
             btnStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -112,6 +157,20 @@ class SettingsViewController: NSViewController {
         if let note = view.viewWithTag(999) as? NSTextField {
             note.stringValue = "Restart app for queue changes to take effect"
         }
+        settingsDelegate?.settingsDidChange()
+    }
+
+    @objc private func treeTabsToggled() {
+        Settings.treeTabsEnabled = treeTabsToggle.state == .on
+        needsRestart = true
+        if let note = view.viewWithTag(999) as? NSTextField {
+            note.stringValue = "Restart app for tree tabs changes to take effect"
+        }
+        settingsDelegate?.settingsDidChange()
+    }
+
+    @objc private func treeTabsSideChanged() {
+        Settings.treeTabsSide = treeTabsSidePopup.titleOfSelectedItem == "Left" ? .left : .right
         settingsDelegate?.settingsDidChange()
     }
 

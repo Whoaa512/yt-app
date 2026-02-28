@@ -4,7 +4,8 @@ import WebKit
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
-    KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate {
+    KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
+    TreeTabSidebarDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -38,6 +39,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var queueSidebar: QueueSidebarView?
     private var queueSidebarWidth: NSLayoutConstraint?
     private var isQueueVisible = false
+
+    // Tree tab sidebar
+    private var treeTabSidebar: TreeTabSidebarView?
+    private var treeTabSidebarWidth: NSLayoutConstraint?
+    private var treeTabLeading: NSLayoutConstraint?
+    private var treeTabTrailing: NSLayoutConstraint?
+    private var webViewLeading: NSLayoutConstraint?
+    private var webViewTrailingToTree: NSLayoutConstraint?
 
     private let durationExtractorJS: String = {
         if let url = Bundle.main.url(forResource: "DurationExtractor", withExtension: "js"),
@@ -170,9 +179,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         sidebar.translatesAutoresizingMaskIntoConstraints = false
         self.queueSidebar = sidebar
 
-        // Body container (webview + optional queue sidebar)
+        // Tree tab sidebar
+        let treeSidebar = TreeTabSidebarView(frame: .zero)
+        treeSidebar.delegate = self
+        treeSidebar.tabManager = tabManager
+        treeSidebar.translatesAutoresizingMaskIntoConstraints = false
+        self.treeTabSidebar = treeSidebar
+
+        // Body container (tree sidebar + webview + queue sidebar)
         let bodyContainer = NSView()
         bodyContainer.translatesAutoresizingMaskIntoConstraints = false
+        bodyContainer.addSubview(treeSidebar)
         bodyContainer.addSubview(webViewContainer)
         bodyContainer.addSubview(sidebar)
 
@@ -185,11 +202,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let sidebarWidth = sidebar.widthAnchor.constraint(equalToConstant: 0)
         self.queueSidebarWidth = sidebarWidth
 
+        let treeWidth = treeSidebar.widthAnchor.constraint(equalToConstant: Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0)
+        self.treeTabSidebarWidth = treeWidth
+
+        // Hide horizontal tab bar when tree tabs enabled
+        let tabBarHeight: CGFloat = Settings.treeTabsEnabled ? 0 : 30
+
         NSLayoutConstraint.activate([
             tabBarContainer.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor),
             tabBarContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             tabBarContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            tabBarContainer.heightAnchor.constraint(equalToConstant: 30),
+            tabBarContainer.heightAnchor.constraint(equalToConstant: tabBarHeight),
 
             addressBar.topAnchor.constraint(equalTo: tabBarContainer.bottomAnchor),
             addressBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -211,17 +234,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             bodyContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             bodyContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
 
+            treeSidebar.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
+            treeSidebar.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
+            treeWidth,
+
             webViewContainer.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
-            webViewContainer.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor),
             webViewContainer.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
 
             sidebar.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
             sidebar.trailingAnchor.constraint(equalTo: bodyContainer.trailingAnchor),
             sidebar.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
             sidebarWidth,
-
-            webViewContainer.trailingAnchor.constraint(equalTo: sidebar.leadingAnchor),
         ])
+
+        applyTreeTabSideLayout(bodyContainer: bodyContainer)
 
         webViewContainer.addSubview(darkFlashOverlay)
         NSLayoutConstraint.activate([
@@ -230,6 +256,36 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             darkFlashOverlay.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
             darkFlashOverlay.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
         ])
+    }
+
+    /// Layout order: Left → [treeSidebar?] [webView] [treeSidebar?] [queueSidebar] → Right
+    private func applyTreeTabSideLayout(bodyContainer: NSView) {
+        guard let treeSidebar = treeTabSidebar, let queueSidebar = queueSidebar else { return }
+
+        treeTabLeading?.isActive = false
+        treeTabTrailing?.isActive = false
+        webViewLeading?.isActive = false
+        webViewTrailingToTree?.isActive = false
+
+        if Settings.treeTabsSide == .left {
+            // [tree] [webView] [queue]
+            treeTabLeading = treeSidebar.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor)
+            webViewLeading = webViewContainer.leadingAnchor.constraint(equalTo: treeSidebar.trailingAnchor)
+            treeTabTrailing = nil
+            webViewTrailingToTree = webViewContainer.trailingAnchor.constraint(equalTo: queueSidebar.leadingAnchor)
+        } else {
+            // [webView] [tree] [queue]
+            webViewLeading = webViewContainer.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor)
+            webViewTrailingToTree = webViewContainer.trailingAnchor.constraint(equalTo: treeSidebar.leadingAnchor)
+            treeTabTrailing = treeSidebar.trailingAnchor.constraint(equalTo: queueSidebar.leadingAnchor)
+            treeTabLeading = nil
+        }
+
+        treeTabLeading?.isActive = true
+        treeTabTrailing?.isActive = true
+        webViewLeading?.isActive = true
+        webViewTrailingToTree?.isActive = true
+        treeSidebar.updateBorderSide()
     }
 
     // MARK: - Menu / Keyboard Shortcuts
@@ -520,12 +576,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         guard let frame = window?.frame else { return }
         UserDefaults.standard.set(NSStringFromRect(frame), forKey: "windowFrame")
 
-        // Save tabs
+        // Save tabs with tree structure
         let tabData = tabManager.tabs.map { tab -> [String: Any] in
             let url = tab.webView?.url ?? tab.url
             let title = tab.webView?.title ?? tab.title
-            var d: [String: Any] = ["url": url.absoluteString, "title": title]
+            var d: [String: Any] = [
+                "url": url.absoluteString,
+                "title": title,
+                "id": tab.id.uuidString,
+            ]
             if let ch = tab.pinnedChannel { d["pinnedChannel"] = ch }
+            if let parent = tab.parent { d["parentId"] = parent.id.uuidString }
             return d
         }
         UserDefaults.standard.set(tabData, forKey: "savedTabs")
@@ -535,6 +596,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private func restoreTabs() {
         if let tabData = UserDefaults.standard.array(forKey: "savedTabs") as? [[String: Any]], !tabData.isEmpty {
             let savedIndex = UserDefaults.standard.integer(forKey: "savedTabSelectedIndex")
+            var tabById: [String: Tab] = [:]
+
             for (i, entry) in tabData.enumerated() {
                 guard let urlStr = entry["url"] as? String, let url = URL(string: urlStr) else { continue }
                 let tab = tabManager.addTab(url: url, select: false)
@@ -550,7 +613,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 if i != savedIndex {
                     tab.isSuspended = true
                 }
+                if let idStr = entry["id"] as? String {
+                    tabById[idStr] = tab
+                }
             }
+
+            // Restore parent-child relationships
+            for entry in tabData {
+                guard let idStr = entry["id"] as? String,
+                      let parentIdStr = entry["parentId"] as? String,
+                      let tab = tabById[idStr],
+                      let parent = tabById[parentIdStr] else { continue }
+                parent.addChild(tab)
+            }
+
             let idx = (savedIndex >= 0 && savedIndex < tabManager.tabs.count) ? savedIndex : 0
             tabManager.selectTab(at: idx)
         } else {
@@ -583,6 +659,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             button.contextMenuTarget = self
             button.tag = i
             tabStackView.addArrangedSubview(button)
+        }
+    }
+
+    private func openBackgroundTab(url: URL) {
+        if Settings.treeTabsEnabled, let parent = tabManager.activeTab {
+            tabManager.addChildTab(url: url, parent: parent)
+        } else {
+            tabManager.addTab(url: url, select: false, suspended: true)
+            scrollTabBarToEnd()
         }
     }
 
@@ -690,16 +775,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func tabManager(_ manager: TabManager, didAddTab tab: Tab, at index: Int) {
         rebuildTabBar()
+        treeTabSidebar?.reload()
     }
 
     func tabManager(_ manager: TabManager, didRemoveTabAt index: Int) {
         rebuildTabBar()
+        treeTabSidebar?.reload()
     }
 
     func tabManager(_ manager: TabManager, didSelectTab tab: Tab, at index: Int) {
         displayWebView(for: tab)
         observeLoadingProgress(for: tab.webView)
         rebuildTabBar()
+        treeTabSidebar?.reload()
         window?.title = tab.title
         toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.pinnedChannel)
         applyPlaybackRate(tab.playbackRate, to: tab)
@@ -707,6 +795,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func tabManager(_ manager: TabManager, didUpdateTab tab: Tab, at index: Int) {
         rebuildTabBar()
+        treeTabSidebar?.reload()
     }
 
     func tabManagerNavigationDelegate(_ manager: TabManager) -> WKNavigationDelegate? { self }
@@ -732,8 +821,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 navigationAction.buttonNumber == 1 ||
                 navigationAction.buttonNumber == 2 {
                 decisionHandler(.cancel)
-                tabManager.addTab(url: url, select: false, suspended: true)
-                scrollTabBarToEnd()
+                openBackgroundTab(url: url)
                 return
             }
             decisionHandler(.allow)
@@ -860,8 +948,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
-            tabManager.addTab(url: url, select: false, suspended: true)
-            scrollTabBarToEnd()
+            openBackgroundTab(url: url)
         }
         return nil
     }
@@ -1066,6 +1153,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func queueSidebarDidClose(_ sidebar: QueueSidebarView) {
         toggleQueue()
     }
+
+    // MARK: - TreeTabSidebarDelegate
+
+    func treeTabSidebar(_ sidebar: TreeTabSidebarView, didSelectTab tab: Tab) {
+        guard let index = tabManager.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+        tabManager.selectTab(at: index)
+    }
+
+    func treeTabSidebar(_ sidebar: TreeTabSidebarView, didCloseTab tab: Tab) {
+        guard let index = tabManager.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+        tabManager.closeTab(at: index)
+    }
+
+    func treeTabSidebar(_ sidebar: TreeTabSidebarView, didCloseTabWithChildren tab: Tab) {
+        guard let index = tabManager.tabs.firstIndex(where: { $0.id == tab.id }) else { return }
+        tabManager.closeTabWithChildren(at: index)
+    }
+
+    func treeTabSidebarDidClose(_ sidebar: TreeTabSidebarView) {}
 
     func queueDidUpdate() {
         queueSidebar?.reload()

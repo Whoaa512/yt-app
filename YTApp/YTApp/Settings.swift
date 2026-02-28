@@ -66,6 +66,20 @@ struct Settings {
         speeds.removeValue(forKey: channel)
         channelSpeeds = speeds
     }
+
+    static var treeTabsEnabled: Bool {
+        get { defaults.bool(forKey: "treeTabsEnabled") }
+        set { defaults.set(newValue, forKey: "treeTabsEnabled") }
+    }
+
+    enum SidebarSide: String {
+        case left, right
+    }
+
+    static var treeTabsSide: SidebarSide {
+        get { SidebarSide(rawValue: defaults.string(forKey: "treeTabsSide") ?? "right") ?? .right }
+        set { defaults.set(newValue.rawValue, forKey: "treeTabsSide") }
+    }
 }
 
 private extension Int {

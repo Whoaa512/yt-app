@@ -12,6 +12,8 @@ class Tab {
     var playbackRate: Float = Settings.defaultPlaybackRate
     var currentChannel: String = ""
     var pinnedChannel: String?
+    weak var parent: Tab?
+    var children: [Tab] = []
 
     init(url: URL, title: String = "New Tab") {
         self.id = UUID()
@@ -20,6 +22,35 @@ class Tab {
         self.isSuspended = false
         self.lastActiveTime = Date()
         self.webView = nil
+    }
+
+    var depth: Int {
+        var d = 0
+        var current = parent
+        while current != nil {
+            d += 1
+            current = current?.parent
+        }
+        return d
+    }
+
+    func addChild(_ child: Tab) {
+        child.parent = self
+        children.append(child)
+    }
+
+    func removeChild(_ child: Tab) {
+        children.removeAll { $0.id == child.id }
+        child.parent = nil
+    }
+
+    func allDescendants() -> [Tab] {
+        var result: [Tab] = []
+        for child in children {
+            result.append(child)
+            result.append(contentsOf: child.allDescendants())
+        }
+        return result
     }
 
     func createWebView(configuration: WKWebViewConfiguration, navigationDelegate: WKNavigationDelegate?, uiDelegate: WKUIDelegate?) -> WKWebView {
