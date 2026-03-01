@@ -142,8 +142,16 @@ class TabManager {
     func addTab(url: URL = URL(string: "https://www.youtube.com")!, select: Bool = true, suspended: Bool = false) -> Tab {
         let tab = Tab(url: url)
         if suspended { tab.isSuspended = true }
-        tabs.append(tab)
-        let index = tabs.count - 1
+
+        let index: Int
+        if !Settings.treeTabsEnabled && selectedIndex >= 0 && selectedIndex < tabs.count {
+            index = selectedIndex + 1
+            tabs.insert(tab, at: index)
+        } else {
+            tabs.append(tab)
+            index = tabs.count - 1
+        }
+
         delegate?.tabManager(self, didAddTab: tab, at: index)
         if select { selectTab(at: index) }
         return tab
