@@ -4,8 +4,11 @@ protocol TreeTabSidebarDelegate: AnyObject {
     func treeTabSidebar(_ sidebar: TreeTabSidebarView, didSelectTab tab: Tab)
     func treeTabSidebar(_ sidebar: TreeTabSidebarView, didCloseTab tab: Tab)
     func treeTabSidebar(_ sidebar: TreeTabSidebarView, didCloseTabWithChildren tab: Tab)
+    func treeTabSidebar(_ sidebar: TreeTabSidebarView, didMoveTab tab: Tab, toParent parent: Tab?, atIndex index: Int)
     func treeTabSidebarDidClose(_ sidebar: TreeTabSidebarView)
 }
+
+private let treeDragType = NSPasteboard.PasteboardType("com.ytapp.treetab")
 
 class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate {
     weak var delegate: TreeTabSidebarDelegate?
@@ -49,6 +52,8 @@ class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
         outlineView.autoresizesOutlineColumn = true
         outlineView.target = self
         outlineView.action = #selector(rowClicked)
+        outlineView.registerForDraggedTypes([treeDragType])
+        outlineView.draggingDestinationFeedbackStyle = .gap
 
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
@@ -140,6 +145,36 @@ class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
         guard let tab = item as? Tab else { return false }
         return !tab.children.isEmpty
+    }
+
+    // MARK: - Drag & Drop
+
+    private var draggedTab: Tab?
+
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+        guard let tab = item as? Tab else { return nil }
+        draggedTab = tab
+        let item = NSPasteboardItem()
+        item.setString(tab.id.uuidString, forType: treeDragType)
+        return item
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+        guard let dragged = draggedTab else { return [] }
+        if let target = item as? Tab {
+            if dragged.id == target.id { return [] }
+            if dragged.allDescendants().contains(where: { $0.id == target.id }) { return [] }
+        }
+        return .move
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+        guard let dragged = draggedTab else { return false }
+        let newParent = item as? Tab
+        let insertIndex = max(index, 0)
+        delegate?.treeTabSidebar(self, didMoveTab: dragged, toParent: newParent, atIndex: insertIndex)
+        draggedTab = nil
+        return true
     }
 
     // MARK: - NSOutlineViewDelegate

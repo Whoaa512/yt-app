@@ -1184,6 +1184,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.closeTabWithChildren(at: index)
     }
 
+    func treeTabSidebar(_ sidebar: TreeTabSidebarView, didMoveTab tab: Tab, toParent parent: Tab?, atIndex index: Int) {
+        tabManager.reparentTab(tab, toParent: parent, atIndex: index)
+        sidebar.reload()
+    }
+
     func treeTabSidebarDidClose(_ sidebar: TreeTabSidebarView) {}
 
     func queueDidUpdate() {

@@ -224,6 +224,64 @@ class TabManager {
         }
     }
 
+    func reparentTab(_ tab: Tab, toParent newParent: Tab?, atIndex childIndex: Int) {
+        let wasSelected = tabs.firstIndex(where: { $0.id == tab.id }) == selectedIndex
+
+        // Remove tab + descendants from flat list
+        let descendants = tab.allDescendants()
+        var movedTabs = [tab] + descendants
+        tabs.removeAll { t in movedTabs.contains(where: { $0.id == t.id }) }
+
+        // Detach from old parent
+        tab.parent?.removeChild(tab)
+
+        // Attach to new parent
+        if let newParent {
+            let clampedIndex = min(childIndex, newParent.children.count)
+            newParent.children.insert(tab, at: clampedIndex)
+            tab.parent = newParent
+        } else {
+            tab.parent = nil
+        }
+
+        // Reinsert into flat list at correct position
+        let insertPos: Int
+        if let newParent {
+            guard let parentFlatIdx = tabs.firstIndex(where: { $0.id == newParent.id }) else { return }
+            // Count children before this index to find flat position
+            var offset = 1
+            for i in 0..<min(childIndex, newParent.children.count) {
+                let child = newParent.children[i]
+                if child.id == tab.id { continue }
+                offset += 1 + child.allDescendants().count
+            }
+            insertPos = parentFlatIdx + offset
+        } else {
+            // Dropping at root level
+            let roots = tabs.filter { $0.parent == nil }
+            if childIndex >= roots.count {
+                insertPos = tabs.count
+            } else if childIndex >= 0 && childIndex < roots.count {
+                let targetRoot = roots[childIndex]
+                insertPos = tabs.firstIndex(where: { $0.id == targetRoot.id }) ?? tabs.count
+            } else {
+                insertPos = tabs.count
+            }
+        }
+
+        let clampedPos = min(insertPos, tabs.count)
+        for (i, t) in movedTabs.enumerated() {
+            tabs.insert(t, at: clampedPos + i)
+        }
+
+        // Fix selected index
+        if wasSelected {
+            selectedIndex = tabs.firstIndex(where: { $0.id == tab.id }) ?? 0
+        } else if let activeId = activeTab?.id {
+            selectedIndex = tabs.firstIndex(where: { $0.id == activeId }) ?? 0
+        }
+    }
+
     var rootTabs: [Tab] {
         tabs.filter { $0.parent == nil }
     }
