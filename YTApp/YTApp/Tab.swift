@@ -12,6 +12,7 @@ class Tab {
     var playbackRate: Float = Settings.defaultPlaybackRate
     var currentChannel: String = ""
     var pinnedChannel: String?
+    var suspendAfterLoad: Bool = false
     weak var parent: Tab?
     var children: [Tab] = []
 

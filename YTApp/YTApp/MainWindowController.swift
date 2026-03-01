@@ -663,12 +663,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     private func openBackgroundTab(url: URL) {
+        let tab: Tab
         if Settings.treeTabsEnabled, let parent = tabManager.activeTab {
-            tabManager.addChildTab(url: url, parent: parent)
+            tab = tabManager.addChildTab(url: url, parent: parent, suspended: false)
         } else {
-            tabManager.addTab(url: url, select: false, suspended: true)
-            scrollTabBarToEnd()
+            tab = tabManager.addTab(url: url, select: false)
         }
+        tab.suspendAfterLoad = true
+        tabManager.ensureWebView(for: tab)
+        tab.webView?.load(URLRequest(url: url))
     }
 
     private func scrollTabBarToEnd() {
@@ -844,6 +847,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         if tab.title.hasSuffix(" - YouTube") {
             tab.title = String(tab.title.dropLast(10))
         }
+
+        if tab.suspendAfterLoad {
+            tab.suspendAfterLoad = false
+            tab.suspend()
+        }
+
         tabManager.updateTab(tab)
         if tab.id == tabManager.activeTab?.id {
             addressBar.setURL(webView.url)
