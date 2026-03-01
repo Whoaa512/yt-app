@@ -13,6 +13,7 @@ class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
 
     private let outlineView = NSOutlineView()
     private let scrollView = NSScrollView()
+    private var isReloading = false
 
     static let width: CGFloat = 240
 
@@ -90,16 +91,17 @@ class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
     }
 
     func reload() {
+        isReloading = true
+        defer { isReloading = false }
+
         let selectedTab = tabManager?.activeTab
         outlineView.reloadData()
 
-        // Expand all items
         guard let tm = tabManager else { return }
         for tab in tm.rootTabs {
             outlineView.expandItem(tab, expandChildren: true)
         }
 
-        // Restore selection
         if let sel = selectedTab {
             let row = outlineView.row(forItem: sel)
             if row >= 0 {
@@ -172,6 +174,7 @@ class TreeTabSidebarView: NSView, NSOutlineViewDataSource, NSOutlineViewDelegate
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
+        guard !isReloading else { return }
         let row = outlineView.selectedRow
         guard row >= 0, let tab = outlineView.item(atRow: row) as? Tab else { return }
         delegate?.treeTabSidebar(self, didSelectTab: tab)
