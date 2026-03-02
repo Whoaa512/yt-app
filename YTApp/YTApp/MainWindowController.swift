@@ -1258,6 +1258,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         showToast("Speed: \(playbackRateText(rate))x")
     }
 
+    func toolbarTogglePinSpeed(_ toolbar: ToolbarView) {
+        shortcutTogglePinSpeed()
+    }
+
+    func toolbarCurrentChannel(_ toolbar: ToolbarView) -> String? {
+        guard let ch = tabManager.activeTab?.currentChannel, !ch.isEmpty else { return nil }
+        return ch
+    }
+
+    func toolbarIsPinned(_ toolbar: ToolbarView) -> Bool {
+        tabManager.activeTab?.pinnedChannel != nil
+    }
+
     // MARK: - AddressBarDelegate
 
     func addressBar(_ bar: AddressBarView, didSubmitInput input: String) {

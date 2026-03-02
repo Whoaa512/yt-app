@@ -9,8 +9,11 @@ protocol ToolbarDelegate: AnyObject {
     func toolbarNextTrack(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float)
     func toolbarResetSpeed(_ toolbar: ToolbarView)
+    func toolbarTogglePinSpeed(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float)
     func toolbar(_ toolbar: ToolbarView, didSeekTo fraction: Double)
+    func toolbarCurrentChannel(_ toolbar: ToolbarView) -> String?
+    func toolbarIsPinned(_ toolbar: ToolbarView) -> Bool
 }
 
 class ToolbarView: NSView, NSTextFieldDelegate {
@@ -235,7 +238,68 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     }
 
     @objc private func resetSpeedTapped() {
-        delegate?.toolbarResetSpeed(self)
+        showSpeedPopover()
+    }
+
+    private func showSpeedPopover() {
+        let channel = delegate?.toolbarCurrentChannel(self)
+        let isPinned = delegate?.toolbarIsPinned(self) ?? false
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 180, height: channel != nil ? 64 : 36))
+
+        var yOffset: CGFloat = 8
+
+        let toggleBtn = makePopoverButton(
+            title: resetBtn.toolTip ?? "Toggle speed",
+            action: { [weak self] in
+                popover.close()
+                guard let self else { return }
+                self.delegate?.toolbarResetSpeed(self)
+            }
+        )
+        toggleBtn.frame = NSRect(x: 8, y: yOffset, width: 164, height: 24)
+        container.addSubview(toggleBtn)
+
+        if let channel, !channel.isEmpty {
+            yOffset += 28
+            let pinTitle = isPinned
+                ? "Unpin from \(channel)"
+                : "📌 Save \(formatRate(currentRate)) for \(channel)"
+            let pinBtn = makePopoverButton(
+                title: pinTitle,
+                action: { [weak self] in
+                    popover.close()
+                    guard let self else { return }
+                    self.delegate?.toolbarTogglePinSpeed(self)
+                }
+            )
+            pinBtn.frame = NSRect(x: 8, y: yOffset, width: 164, height: 24)
+            container.addSubview(pinBtn)
+        }
+
+        container.frame.size.height = yOffset + 32
+
+        let vc = NSViewController()
+        vc.view = container
+        popover.contentViewController = vc
+
+        popover.show(relativeTo: resetBtn.bounds, of: resetBtn, preferredEdge: .maxY)
+    }
+
+    private func makePopoverButton(title: String, action: @escaping () -> Void) -> NSButton {
+        let btn = PopoverActionButton(title: title, action: action)
+        btn.bezelStyle = .recessed
+        btn.isBordered = false
+        btn.font = .systemFont(ofSize: 11, weight: .medium)
+        btn.alignment = .left
+        btn.contentTintColor = .labelColor
+        btn.wantsLayer = true
+        btn.layer?.cornerRadius = 4
+        return btn
     }
 
     private func makeDot() -> NSView {
@@ -439,5 +503,37 @@ class ToolbarButton: NSView {
     override func mouseUp(with event: NSEvent) {
         layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.06).cgColor
         super.mouseUp(with: event)
+    }
+}
+
+// MARK: - PopoverActionButton
+
+class PopoverActionButton: NSButton {
+    private var onClick: (() -> Void)?
+    private var trackingArea: NSTrackingArea?
+
+    convenience init(title: String, action: @escaping () -> Void) {
+        self.init(frame: .zero)
+        self.title = title
+        self.onClick = action
+        self.target = self
+        self.action = #selector(handleClick)
+    }
+
+    @objc private func handleClick() { onClick?() }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let t = trackingArea { removeTrackingArea(t) }
+        trackingArea = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self)
+        addTrackingArea(trackingArea!)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        layer?.backgroundColor = NSColor.clear.cgColor
     }
 }
