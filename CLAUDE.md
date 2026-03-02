@@ -77,9 +77,31 @@ Sequential, prefixed: **AA** (build files), **BB** (file refs), **CC** (products
 - **Context menus lose DOM context** — the `yt-action` event fires after the popup closes. Track the renderer via `contextmenu` listener in capture phase.
 - **Always have a fallback**: oEmbed API (`/oembed?url=...&format=json`) for title/channel when DOM extraction fails.
 
+## Architecture Patterns
+
+### Toolbar ↔ MainWindowController delegate
+ToolbarView owns UI; MainWindowController owns state. To add a toolbar action:
+1. Add method to `ToolbarDelegate` protocol in `ToolbarView.swift`
+2. Implement in `MainWindowController` (which conforms to the protocol)
+3. For toolbar needing controller state (e.g. current channel), add query methods to the delegate protocol (e.g. `toolbarCurrentChannel`) — toolbar pulls, never stores app state.
+
+### Per-channel speed pinning
+- `Tab.currentChannel` — updated by `mediaBridge` JS messages
+- `Tab.pinnedChannel` — set when user pins speed for a channel
+- `Settings.channelSpeeds` — `[String: Float]` in UserDefaults, persists across sessions
+- On navigation to a channel with saved speed, `MainWindowController` auto-applies it
+- `updatePlaybackRate(_:pinned:)` shows 📌 indicator in rate field when pinned
+
+### NSPopover for contextual actions
+Use transient `NSPopover` with a simple `NSView` container + `PopoverActionButton` instances. Pattern in `ToolbarView.showSpeedPopover()`. Keep popovers minimal — 1-3 actions max. Popover closes itself via the action closure.
+
+### App relaunch
+`relaunchApp()` in MainWindowController: spawn `/bin/sh -c "sleep 0.5; open <bundlePath>"` then `NSApp.terminate`. Bound to Ctrl+Cmd+R.
+
 ## Workflow
 
 - **Commit in logical chunks** as you go — don't wait until the end. Group related changes into a single commit with a descriptive message.
+- **Relaunch shortcut**: Ctrl+Cmd+R — rebuilds are picked up by relaunching the app from `build/Debug/YTApp.app`.
 
 ## Style
 
