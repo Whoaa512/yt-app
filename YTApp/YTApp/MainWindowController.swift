@@ -298,6 +298,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         appMenu.addItem(.separator())
+        let relaunchItem = NSMenuItem(title: "Relaunch", action: #selector(relaunchApp), keyEquivalent: "r")
+        relaunchItem.keyEquivalentModifierMask = [.command, .control]
+        appMenu.addItem(relaunchItem)
         appMenu.addItem(withTitle: "Quit YTApp", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
@@ -1386,6 +1389,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func reloadAllPlugins() {
         PluginManager.shared.reload()
+    }
+
+    @objc func relaunchApp() {
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.launchPath = "/bin/sh"
+        task.arguments = ["-c", "sleep 0.5; open \"\(bundlePath)\""]
+        task.launch()
+        NSApp.terminate(nil)
     }
 
     @objc func showSettings() {
