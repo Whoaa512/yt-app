@@ -267,7 +267,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         if let channel, !channel.isEmpty {
             yOffset += 28
             let pinTitle = isPinned
-                ? "Unpin from \(channel)"
+                ? "Unpin \(formatRate(currentRate)) from \(channel)"
                 : "📌 Save \(formatRate(currentRate)) for \(channel)"
             let pinBtn = makePopoverButton(
                 title: pinTitle,
