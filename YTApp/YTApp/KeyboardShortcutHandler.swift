@@ -106,13 +106,34 @@ class KeyboardShortcutHandler {
         // Don't intercept other modifier key combos — those go to menus
         if !mods.isEmpty { return false }
 
-        // Don't intercept when a text field/input has focus
+        // Don't intercept when a native text field has focus
         if let responder = event.window?.firstResponder {
             if responder is NSTextView,
                let fieldEditor = (responder as? NSTextView),
                fieldEditor.isFieldEditor || fieldEditor.superview is NSTextField {
                 return false
             }
+        }
+
+        // Don't intercept when a web page input/textarea/contenteditable has focus
+        if let wv = delegate?.shortcutActiveWebView() {
+            var webInputFocused = false
+            let sem = DispatchSemaphore(value: 0)
+            wv.evaluateJavaScript("""
+                (function() {
+                    var el = document.activeElement;
+                    if (!el) return false;
+                    var tag = el.tagName;
+                    if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+                    if (el.isContentEditable) return true;
+                    return false;
+                })()
+                """) { result, _ in
+                webInputFocused = (result as? Bool) ?? false
+                sem.signal()
+            }
+            _ = sem.wait(timeout: .now() + 0.05)
+            if webInputFocused { return false }
         }
 
         // Check if link hints are active — let the JS handle everything
