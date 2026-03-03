@@ -185,6 +185,7 @@ class TabManager {
         tab.parent?.removeChild(tab)
         tab.children.removeAll()
 
+        tab.webView?.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(e=>{e.pause();e.src=''})")
         tab.webView = nil
         tabs.remove(at: index)
         delegate?.tabManager(self, didRemoveTabAt: index)
@@ -211,6 +212,7 @@ class TabManager {
             }
         }
         for i in indicesToRemove.sorted().reversed() {
+            tabs[i].webView?.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(e=>{e.pause();e.src=''})")
             tabs[i].webView = nil
             tabs.remove(at: i)
             delegate?.tabManager(self, didRemoveTabAt: i)
