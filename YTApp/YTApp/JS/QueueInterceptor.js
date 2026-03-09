@@ -132,6 +132,57 @@
         return null;
     }
 
+    window.__ytQueueNearestVideo = function() {
+        var selectors = [
+            'ytd-rich-item-renderer', 'ytd-compact-video-renderer', 'ytd-video-renderer',
+            'ytd-grid-video-renderer', 'ytd-reel-item-renderer', 'ytd-rich-grid-media'
+        ];
+        var renderers = document.querySelectorAll(selectors.join(', '));
+        var best = null;
+        var bestScore = Infinity;
+        var vpH = window.innerHeight;
+        var vpCenter = vpH / 2;
+
+        for (var i = 0; i < renderers.length; i++) {
+            var rect = renderers[i].getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > vpH) continue;
+            if (rect.width === 0 || rect.height === 0) continue;
+            var link = renderers[i].querySelector('a[href*="/watch"]');
+            if (!link) continue;
+            var center = (rect.top + rect.bottom) / 2;
+            var dist = Math.abs(center - vpCenter);
+            if (dist < bestScore) {
+                bestScore = dist;
+                best = renderers[i];
+            }
+        }
+
+        if (!best) return false;
+
+        var videoLink = best.querySelector('a[href*="/watch"]');
+        if (!videoLink) return false;
+        var href = videoLink.getAttribute('href') || '';
+        var match = href.match(/[?&]v=([^&]+)/);
+        if (!match) return false;
+        var videoId = match[1];
+
+        var meta = extractFromRenderer(best, videoId);
+        var payload = {
+            videoId: videoId,
+            title: meta.title,
+            channel: meta.channel,
+            thumbnail: meta.thumbnail || ('https://i.ytimg.com/vi/' + videoId + '/mqdefault.jpg'),
+            duration: meta.duration,
+            viewCount: meta.viewCount,
+            publishedText: meta.publishedText
+        };
+
+        if (window.webkit && window.webkit.messageHandlers.queueBridge) {
+            window.webkit.messageHandlers.queueBridge.postMessage(JSON.stringify(payload));
+        }
+        return true;
+    };
+
     document.addEventListener('yt-action', function(e) {
         if (!e.detail || !e.detail.actionName) return;
 

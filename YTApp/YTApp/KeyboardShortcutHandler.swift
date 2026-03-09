@@ -15,8 +15,11 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutShowHistory()
     func shortcutShowHelp()
     func shortcutShowLinkHints(newTab: Bool)
+    func shortcutScrollUp()
+    func shortcutScrollDown()
     func shortcutScrollTop()
     func shortcutScrollBottom()
+    func shortcutQueueNearestVideo()
     func shortcutStartElementPicker()
     func shortcutTogglePinSpeed()
     func shortcutTogglePiP()
@@ -45,6 +48,8 @@ class KeyboardShortcutHandler {
     /// Built-in shortcuts for display in help modal.
     static let builtInShortcuts: [Shortcut] = [
         // Navigation
+        Shortcut(key: "j", label: "Scroll down", category: "Navigation"),
+        Shortcut(key: "k", label: "Scroll up (non-watch) / Play-pause (watch)", category: "Navigation"),
         Shortcut(key: "H", label: "Go back", category: "Navigation"),
         Shortcut(key: "L", label: "Go forward", category: "Navigation"),
         Shortcut(key: "r", label: "Reload page", category: "Navigation"),
@@ -60,8 +65,8 @@ class KeyboardShortcutHandler {
         Shortcut(key: "f", label: "Open link hints", category: "Link Hints"),
         Shortcut(key: "F", label: "Open link in new tab", category: "Link Hints"),
         // Playback
-        Shortcut(key: "k", label: "Play / pause", category: "Playback"),
         // Panels
+        Shortcut(key: "a", label: "Add nearest video to queue", category: "Queue"),
         Shortcut(key: "q", label: "Toggle queue sidebar", category: "Panels"),
         Shortcut(key: "gh", label: "Show history", category: "Panels"),
         // Other
@@ -217,7 +222,16 @@ class KeyboardShortcutHandler {
         case "H": delegate?.shortcutGoBack(); return true
         case "L": delegate?.shortcutGoForward(); return true
         case "r": delegate?.shortcutRefresh(); return true
-        case "k": delegate?.shortcutPlayPause(); return true
+        case "j": delegate?.shortcutScrollDown(); return true
+        case "k":
+            let url = delegate?.shortcutActiveURL() ?? ""
+            if url.contains("/watch") {
+                delegate?.shortcutPlayPause()
+            } else {
+                delegate?.shortcutScrollUp()
+            }
+            return true
+        case "a": delegate?.shortcutQueueNearestVideo(); return true
         case "q": delegate?.shortcutToggleQueue(); return true
         case "G": delegate?.shortcutScrollBottom(); return true
         default: return false

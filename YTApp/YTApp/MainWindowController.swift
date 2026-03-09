@@ -1452,6 +1452,22 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytShowLinkHints && window.__ytShowLinkHints(\(arg))")
     }
 
+    func shortcutScrollUp() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollBy({top:-300,behavior:'smooth'})")
+    }
+
+    func shortcutScrollDown() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollBy({top:300,behavior:'smooth'})")
+    }
+
+    func shortcutQueueNearestVideo() {
+        tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytQueueNearestVideo && window.__ytQueueNearestVideo()") { [weak self] result, _ in
+            if let added = result as? Bool, added {
+                self?.showToast("Added to queue")
+            }
+        }
+    }
+
     func shortcutScrollTop() {
         tabManager.activeTab?.webView?.evaluateJavaScript("window.scrollTo({top:0,behavior:'smooth'})")
     }
