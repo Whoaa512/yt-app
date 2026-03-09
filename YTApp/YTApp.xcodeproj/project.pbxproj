@@ -42,6 +42,9 @@
 		AA000032 /* SuspendedTabOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000034; };
 		AA000033 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000035; };
 		AA000034 /* TreeTabSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000036; };
+		AA000035 /* SummarySidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000037; };
+		AA000036 /* YTWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000038; };
+		AA000037 /* SummarizeContext.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000039; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +85,9 @@
 		BB000034 /* SuspendedTabOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuspendedTabOverlay.swift; sourceTree = "<group>"; };
 		BB000035 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		BB000036 /* TreeTabSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TreeTabSidebarView.swift; sourceTree = "<group>"; };
+		BB000037 /* SummarySidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarySidebarView.swift; sourceTree = "<group>"; };
+		BB000038 /* YTWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YTWebView.swift; sourceTree = "<group>"; };
+		BB000039 /* SummarizeContext.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SummarizeContext.js; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -132,6 +138,8 @@
 				BB000034 /* SuspendedTabOverlay.swift */,
 				BB000035 /* SettingsViewController.swift */,
 				BB000036 /* TreeTabSidebarView.swift */,
+				BB000037 /* SummarySidebarView.swift */,
+				BB000038 /* YTWebView.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -153,6 +161,7 @@
 				BB000025 /* LinkHints.js */,
 				BB000026 /* ElementPicker.js */,
 				BB000030 /* YTAppAPI.js */,
+				BB000039 /* SummarizeContext.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -236,6 +245,7 @@
 				AA000023 /* LinkHints.js in Resources */,
 				AA000024 /* ElementPicker.js in Resources */,
 				AA000028 /* YTAppAPI.js in Resources */,
+				AA000037 /* SummarizeContext.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +280,8 @@
 				AA000032 /* SuspendedTabOverlay.swift in Sources */,
 				AA000033 /* SettingsViewController.swift in Sources */,
 				AA000034 /* TreeTabSidebarView.swift in Sources */,
+				AA000035 /* SummarySidebarView.swift in Sources */,
+				AA000036 /* YTWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

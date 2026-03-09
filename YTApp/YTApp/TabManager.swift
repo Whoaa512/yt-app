@@ -74,6 +74,13 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject SummarizeContext.js for right-click summarize
+        if let jsURL = Bundle.main.url(forResource: "SummarizeContext", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject TheaterMode.js at document start (before YouTube reads prefs)
         updateTheaterModeScript(on: config.userContentController)
 

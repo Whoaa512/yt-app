@@ -55,7 +55,7 @@ class Tab {
     }
 
     func createWebView(configuration: WKWebViewConfiguration, navigationDelegate: WKNavigationDelegate?, uiDelegate: WKUIDelegate?) -> WKWebView {
-        let wv = WKWebView(frame: .zero, configuration: configuration)
+        let wv = YTWebView(frame: .zero, configuration: configuration)
         wv.navigationDelegate = navigationDelegate
         wv.uiDelegate = uiDelegate
         wv.allowsBackForwardNavigationGestures = true
