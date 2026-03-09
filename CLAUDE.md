@@ -28,6 +28,8 @@ cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/cod
 | `JSConsoleWindowController.swift` | Dev console for JS evaluation |
 | `Settings.swift` | UserDefaults wrapper (playback rate, theater mode, etc.) |
 | `URLRouter.swift` | Domain allowlist, external URL handling |
+| `YTWebView.swift` | WKWebView subclass with right-click context menu (Summarize) |
+| `SummarySidebarView.swift` | Right-side drawer showing video summaries |
 
 ### JavaScript (`YTApp/YTApp/JS/`)
 | File | Injection | Role |
@@ -37,6 +39,7 @@ cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/cod
 | `DurationExtractor.js` | evaluated on demand | Extracts video duration for history |
 | `QueueInterceptor.js` | documentStart | Hijacks "Add to queue" → `queueBridge` handler |
 | `TheaterMode.js` | documentStart | Persists `wide=1` cookie for theater mode |
+| `SummarizeContext.js` | documentEnd | Tracks right-clicked renderer for video URL extraction |
 
 ### Message Handlers (Swift ↔ JS bridge)
 | Handler | Direction | Purpose |
