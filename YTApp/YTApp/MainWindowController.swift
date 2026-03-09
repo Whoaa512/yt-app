@@ -1119,8 +1119,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         let paused = json["paused"] as? Bool ?? true
         let ended = json["ended"] as? Bool ?? false
+        let pip = json["pip"] as? Bool ?? false
         let wasPlaying = tab.isPlayingMedia
         tab.isPlayingMedia = !paused && !ended
+        let wasInPiP = tab.isInPiP
+        tab.isInPiP = pip
+        if pip != wasInPiP && tab.id == tabManager.activeTab?.id {
+            toolbar.updatePiPState(pip)
+        }
 
         if tab.isPlayingMedia != wasPlaying {
             rebuildTabBar()
@@ -1295,8 +1301,34 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     private func handleVideoEnded() {
         guard let next = QueueManager.shared.playNext() else { return }
+        let wasInPiP = tabManager.activeTab?.isInPiP ?? false
         tabManager.activeTab?.webView?.load(URLRequest(url: next.watchURL))
         queueSidebar?.reload()
+
+        if wasInPiP {
+            reenterPiPAfterNavigation()
+        }
+    }
+
+    private func reenterPiPAfterNavigation() {
+        guard let wv = tabManager.activeTab?.webView else { return }
+        // Wait for new video to start playing, then re-enter PiP
+        var attempts = 0
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            attempts += 1
+            if attempts > 20 { timer.invalidate(); return }
+            wv.evaluateJavaScript("""
+                (function() {
+                    const v = document.querySelector('video');
+                    if (!v || v.paused || v.readyState < 2) return false;
+                    if (document.pictureInPictureElement === v) return true;
+                    v.requestPictureInPicture().catch(function(){});
+                    return true;
+                })()
+            """) { result, _ in
+                if result as? Bool == true { timer.invalidate() }
+            }
+        }
     }
 
     // MARK: - ToolbarDelegate
@@ -1358,6 +1390,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func toolbarTogglePinSpeed(_ toolbar: ToolbarView) {
         shortcutTogglePinSpeed()
+    }
+
+    func toolbarTogglePiP(_ toolbar: ToolbarView) {
+        shortcutTogglePiP()
     }
 
     func toolbarCurrentChannel(_ toolbar: ToolbarView) -> String? {
@@ -1572,18 +1608,23 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func shortcutTogglePiP() {
+        let isInPiP = tabManager.activeTab?.isInPiP ?? false
         tabManager.activeTab?.webView?.evaluateJavaScript("""
             (function() {
                 const v = document.querySelector('video');
-                if (!v) return;
+                if (!v) return false;
                 if (document.pictureInPictureElement === v) {
                     document.exitPictureInPicture();
+                    return false;
                 } else {
                     v.requestPictureInPicture();
+                    return true;
                 }
             })()
-        """)
-        showToast("Picture-in-Picture toggled")
+        """) { [weak self] _, _ in
+            self?.toolbar.updatePiPState(!isInPiP)
+        }
+        showToast(isInPiP ? "Exiting Picture-in-Picture" : "Entering Picture-in-Picture")
     }
 
     func shortcutTogglePinSpeed() {

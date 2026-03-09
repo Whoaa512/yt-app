@@ -9,6 +9,7 @@ class Tab {
     var isSuspended: Bool
     var lastActiveTime: Date
     var isPlayingMedia: Bool = false
+    var isInPiP: Bool = false
     var playbackRate: Float = Settings.defaultPlaybackRate
     var currentChannel: String = ""
     var pinnedChannel: String?

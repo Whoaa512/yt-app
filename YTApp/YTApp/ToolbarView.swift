@@ -10,6 +10,7 @@ protocol ToolbarDelegate: AnyObject {
     func toolbar(_ toolbar: ToolbarView, didChangePlaybackRate rate: Float)
     func toolbarResetSpeed(_ toolbar: ToolbarView)
     func toolbarTogglePinSpeed(_ toolbar: ToolbarView)
+    func toolbarTogglePiP(_ toolbar: ToolbarView)
     func toolbar(_ toolbar: ToolbarView, didChangeVolume volume: Float)
     func toolbar(_ toolbar: ToolbarView, didSeekTo fraction: Double)
     func toolbarCurrentChannel(_ toolbar: ToolbarView) -> String?
@@ -22,6 +23,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     let rateField = NSTextField()
     private let rateStepper = NSStepper()
     private var currentRate: Float = 1.0
+    private var pipButton: ToolbarButton!
     private var hoverButtons: [ToolbarButton] = []
     private var resetBtn: NSButton!
     private let nowPlayingLabel = NSTextField(labelWithString: "")
@@ -52,8 +54,9 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         let prev = ToolbarButton(symbolName: "backward.fill", tooltip: "Back 10s", target: self, action: #selector(prevTrack))
         let playPause = ToolbarButton(symbolName: "playpause.fill", tooltip: "Play / Pause", target: self, action: #selector(doPlayPause))
         let next = ToolbarButton(symbolName: "forward.fill", tooltip: "Next", target: self, action: #selector(nextTrack))
+        pipButton = ToolbarButton(symbolName: "pip.enter", tooltip: "Picture-in-Picture (gi)", target: self, action: #selector(doPiP))
 
-        hoverButtons = [back, forward, refresh, prev, playPause, next]
+        hoverButtons = [back, forward, refresh, prev, playPause, next, pipButton]
 
         // Rate controls
         let rateLabel = NSTextField(labelWithString: "Speed")
@@ -107,7 +110,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         navStack.translatesAutoresizingMaskIntoConstraints = false
 
         // Playback group
-        let playStack = NSStackView(views: [prev, playPause, next])
+        let playStack = NSStackView(views: [prev, playPause, next, pipButton])
         playStack.orientation = .horizontal
         playStack.spacing = 2
         playStack.translatesAutoresizingMaskIntoConstraints = false
@@ -385,12 +388,23 @@ class ToolbarView: NSView, NSTextFieldDelegate {
 
     // MARK: - Actions
 
+    func updatePiPState(_ active: Bool) {
+        let symbolName = active ? "pip.exit" : "pip.enter"
+        let tooltip = active ? "Exit PiP (gi)" : "Picture-in-Picture (gi)"
+        let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        pipButton.toolTip = tooltip
+        if let iv = pipButton.subviews.compactMap({ $0 as? NSImageView }).first {
+            iv.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?.withSymbolConfiguration(config)
+        }
+    }
+
     @objc private func goBack() { delegate?.toolbarGoBack(self) }
     @objc private func goForward() { delegate?.toolbarGoForward(self) }
     @objc private func doRefresh() { delegate?.toolbarRefresh(self) }
     @objc private func doPlayPause() { delegate?.toolbarPlayPause(self) }
     @objc private func prevTrack() { delegate?.toolbarPrevTrack(self) }
     @objc private func nextTrack() { delegate?.toolbarNextTrack(self) }
+    @objc private func doPiP() { delegate?.toolbarTogglePiP(self) }
 
     @objc private func seekChanged() {
         delegate?.toolbar(self, didSeekTo: seekSlider.doubleValue)

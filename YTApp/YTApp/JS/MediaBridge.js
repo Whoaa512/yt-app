@@ -10,6 +10,7 @@
             ended: video.ended,
             duration: video.duration || 0,
             currentTime: video.currentTime || 0,
+            pip: document.pictureInPictureElement === video,
             title: document.title.replace(/ - YouTube$/, ''),
             channel: (document.querySelector('#owner #channel-name a') ||
                       document.querySelector('ytd-channel-name a') ||
