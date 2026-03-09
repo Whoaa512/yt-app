@@ -1238,8 +1238,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["node", "/Users/cjw/code/summarize/dist/cli.js", url]
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.arguments = ["-lc", "node /Users/cjw/code/summarize/dist/cli.js '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
             process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()
@@ -2331,8 +2331,9 @@ class VideoDownloader {
         DispatchQueue.global(qos: .userInitiated).async {
             let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!.path
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = ["yt-dlp", "-o", "\(downloadsDir)/%(title)s.%(ext)s", "--no-playlist", url]
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            let escapedUrl = url.replacingOccurrences(of: "'", with: "'\\''")
+            process.arguments = ["-lc", "yt-dlp -o '\(downloadsDir)/%(title)s.%(ext)s' --no-playlist '\(escapedUrl)'"]
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = pipe
