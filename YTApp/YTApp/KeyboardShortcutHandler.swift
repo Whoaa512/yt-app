@@ -150,7 +150,13 @@ class KeyboardShortcutHandler {
                 sem.signal()
             }
             _ = sem.wait(timeout: .now() + 0.05)
-            if hintsActive { return false }
+            if hintsActive {
+                if event.keyCode == 53 {
+                    wv.evaluateJavaScript("window.__ytHideLinkHints && window.__ytHideLinkHints()")
+                    return true
+                }
+                return false
+            }
         }
 
         guard let chars = event.charactersIgnoringModifiers, !chars.isEmpty else { return false }
