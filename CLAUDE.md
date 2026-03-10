@@ -5,10 +5,14 @@ Native macOS YouTube wrapper — Swift, AppKit, WKWebView. No storyboards.
 ## Build
 
 ```bash
-cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/code/yt-app/build build
+./build.sh
 ```
 
+Or manually: `cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/code/yt-app/build CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build`
+
 **Important**: Always use `SYMROOT=/Users/cjw/code/yt-app/build` — the app is launched from `build/Debug/YTApp.app`, not DerivedData.
+
+**Passkeys/WebAuthn**: Requires `com.apple.developer.web-browser` entitlement which needs a real Apple Development certificate (ad-hoc signing can't use restricted entitlements). When a cert is available, `build.sh` should re-sign with `YTApp/YTApp/YTApp.entitlements`.
 
 ## File Map
 
