@@ -81,6 +81,12 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        if let jsURL = Bundle.main.url(forResource: "InputFocusTracker", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject TheaterMode.js at document start (before YouTube reads prefs)
         updateTheaterModeScript(on: config.userContentController)
 

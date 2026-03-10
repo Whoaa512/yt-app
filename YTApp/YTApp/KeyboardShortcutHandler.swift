@@ -38,6 +38,8 @@ class KeyboardShortcutHandler {
     private var monitor: Any?
     private var pendingPrefix: String?
     private var prefixTimer: Timer?
+    var webInputFocused = false
+    var linkHintsActive = false
 
     struct Shortcut {
         let key: String
@@ -120,43 +122,14 @@ class KeyboardShortcutHandler {
             }
         }
 
-        // Don't intercept when a web page input/textarea/contenteditable has focus
-        if let wv = delegate?.shortcutActiveWebView() {
-            var webInputFocused = false
-            let sem = DispatchSemaphore(value: 0)
-            wv.evaluateJavaScript("""
-                (function() {
-                    var el = document.activeElement;
-                    if (!el) return false;
-                    var tag = el.tagName;
-                    if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
-                    if (el.isContentEditable) return true;
-                    return false;
-                })()
-                """) { result, _ in
-                webInputFocused = (result as? Bool) ?? false
-                sem.signal()
-            }
-            _ = sem.wait(timeout: .now() + 0.05)
-            if webInputFocused { return false }
-        }
+        if webInputFocused { return false }
 
-        // Check if link hints are active — let the JS handle everything
-        if let wv = delegate?.shortcutActiveWebView() {
-            var hintsActive = false
-            let sem = DispatchSemaphore(value: 0)
-            wv.evaluateJavaScript("window.__ytLinkHintsActive ? window.__ytLinkHintsActive() : false") { result, _ in
-                hintsActive = (result as? Bool) ?? false
-                sem.signal()
+        if linkHintsActive {
+            if event.keyCode == 53 {
+                delegate?.shortcutActiveWebView()?.evaluateJavaScript("window.__ytHideLinkHints && window.__ytHideLinkHints()")
+                return true
             }
-            _ = sem.wait(timeout: .now() + 0.05)
-            if hintsActive {
-                if event.keyCode == 53 {
-                    wv.evaluateJavaScript("window.__ytHideLinkHints && window.__ytHideLinkHints()")
-                    return true
-                }
-                return false
-            }
+            return false
         }
 
         guard let chars = event.charactersIgnoringModifiers, !chars.isEmpty else { return false }
@@ -202,17 +175,9 @@ class KeyboardShortcutHandler {
             return true
         }
 
-        // Check plugin JS shortcuts (async, but we need sync here — fire and don't block)
-        // Plugin shortcuts are checked in JS first via the link hints pattern
         if let wv = delegate?.shortcutActiveWebView() {
-            var pluginHandled = false
-            let sem = DispatchSemaphore(value: 0)
-            wv.evaluateJavaScript("window.__ytAppPluginShortcut && window.__ytAppPluginShortcut('\(ch.replacingOccurrences(of: "'", with: "\\'"))')") { result, _ in
-                pluginHandled = (result as? Bool) ?? false
-                sem.signal()
-            }
-            _ = sem.wait(timeout: .now() + 0.05)
-            if pluginHandled { return true }
+            let escaped = ch.replacingOccurrences(of: "'", with: "\\'")
+            wv.evaluateJavaScript("window.__ytAppPluginShortcut && window.__ytAppPluginShortcut('\(escaped)')")
         }
 
         // Built-in single-key shortcuts

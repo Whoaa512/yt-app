@@ -45,6 +45,7 @@
 		AA000035 /* SummarySidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000037; };
 		AA000036 /* YTWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000038; };
 		AA000037 /* SummarizeContext.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000039; };
+		AA000038 /* InputFocusTracker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000040; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -88,6 +89,7 @@
 		BB000037 /* SummarySidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarySidebarView.swift; sourceTree = "<group>"; };
 		BB000038 /* YTWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YTWebView.swift; sourceTree = "<group>"; };
 		BB000039 /* SummarizeContext.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SummarizeContext.js; sourceTree = "<group>"; };
+		BB000040 /* InputFocusTracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = InputFocusTracker.js; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -162,6 +164,7 @@
 				BB000026 /* ElementPicker.js */,
 				BB000030 /* YTAppAPI.js */,
 				BB000039 /* SummarizeContext.js */,
+				BB000040 /* InputFocusTracker.js */,
 			);
 			path = JS;
 			sourceTree = "<group>";
@@ -246,6 +249,7 @@
 				AA000024 /* ElementPicker.js in Resources */,
 				AA000028 /* YTAppAPI.js in Resources */,
 				AA000037 /* SummarizeContext.js in Resources */,
+				AA000038 /* InputFocusTracker.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
