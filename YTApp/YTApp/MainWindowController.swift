@@ -98,6 +98,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "newTab")
         tabManager.sharedConfiguration.userContentController.add(self, name: "elementPicked")
         tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "inputFocusChanged")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "linkHintsChanged")
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
         keyboardHandler.start()
@@ -819,6 +821,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         window?.title = tab.title
         toolbar.updatePlaybackRate(tab.playbackRate, pinned: tab.pinnedChannel)
         applyPlaybackRate(tab.playbackRate, to: tab)
+        keyboardHandler.webInputFocused = false
+        keyboardHandler.linkHintsActive = false
     }
 
     func tabManager(_ manager: TabManager, didUpdateTab tab: Tab, at index: Int) {
@@ -1012,6 +1016,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         if message.name == "pluginBridge" {
             PluginManager.shared.handleMessage(message.body, webView: message.webView ?? tabManager.activeTab?.webView ?? WKWebView())
+            return
+        }
+
+        if message.name == "inputFocusChanged" {
+            if let body = message.body as? [String: Any], let focused = body["focused"] as? Bool {
+                keyboardHandler.webInputFocused = focused
+            }
+            return
+        }
+
+        if message.name == "linkHintsChanged" {
+            if let body = message.body as? [String: Any], let active = body["active"] as? Bool {
+                keyboardHandler.linkHintsActive = active
+            }
             return
         }
 

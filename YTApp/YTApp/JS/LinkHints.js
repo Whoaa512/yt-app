@@ -109,6 +109,7 @@
 
         document.body.appendChild(overlay);
         active = true;
+        try { webkit.messageHandlers.linkHintsChanged.postMessage({ active: true }); } catch(e) {}
         typedChars = '';
     }
 
@@ -119,6 +120,7 @@
         overlay = null;
         hints = [];
         active = false;
+        try { webkit.messageHandlers.linkHintsChanged.postMessage({ active: false }); } catch(e) {}
         typedChars = '';
         newTab = false;
     }
