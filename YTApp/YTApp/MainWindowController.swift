@@ -54,6 +54,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var webViewLeading: NSLayoutConstraint?
     private var webViewTrailingToTree: NSLayoutConstraint?
 
+    // Fullscreen
+    private var isVideoFullscreen = false
+    private var tabBarHeightConstraint: NSLayoutConstraint?
+    private var addressBarHeightConstraint: NSLayoutConstraint?
+    private var toolbarHeightConstraint: NSLayoutConstraint?
+    private var progressBarHeightConstraint: NSLayoutConstraint?
+    private var bodyTopToProgress: NSLayoutConstraint?
+    private var bodyTopToContent: NSLayoutConstraint?
+
     private let durationExtractorJS: String = {
         if let url = Bundle.main.url(forResource: "DurationExtractor", withExtension: "js"),
            let source = try? String(contentsOf: url) {
@@ -100,6 +109,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
         tabManager.sharedConfiguration.userContentController.add(self, name: "inputFocusChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "linkHintsChanged")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "fullscreenBridge")
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
         keyboardHandler.start()
@@ -226,28 +236,39 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         // Hide horizontal tab bar when tree tabs enabled
         let tabBarHeight: CGFloat = Settings.treeTabsEnabled ? 0 : 30
 
+        let tabBarH = tabBarContainer.heightAnchor.constraint(equalToConstant: tabBarHeight)
+        let addressBarH = addressBar.heightAnchor.constraint(equalToConstant: 36)
+        let toolbarH = toolbar.heightAnchor.constraint(equalToConstant: 30)
+        let progressBarH = loadingProgressBar.heightAnchor.constraint(equalToConstant: 2)
+        let bodyTop = bodyContainer.topAnchor.constraint(equalTo: loadingProgressBar.bottomAnchor)
+        self.tabBarHeightConstraint = tabBarH
+        self.addressBarHeightConstraint = addressBarH
+        self.toolbarHeightConstraint = toolbarH
+        self.progressBarHeightConstraint = progressBarH
+        self.bodyTopToProgress = bodyTop
+
         NSLayoutConstraint.activate([
             tabBarContainer.topAnchor.constraint(equalTo: contentView.safeAreaLayoutGuide.topAnchor),
             tabBarContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             tabBarContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            tabBarContainer.heightAnchor.constraint(equalToConstant: tabBarHeight),
+            tabBarH,
 
             addressBar.topAnchor.constraint(equalTo: tabBarContainer.bottomAnchor),
             addressBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             addressBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            addressBar.heightAnchor.constraint(equalToConstant: 36),
+            addressBarH,
 
             toolbar.topAnchor.constraint(equalTo: addressBar.bottomAnchor),
             toolbar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             toolbar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            toolbar.heightAnchor.constraint(equalToConstant: 30),
+            toolbarH,
 
             loadingProgressBar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             loadingProgressBar.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             loadingProgressBar.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            loadingProgressBar.heightAnchor.constraint(equalToConstant: 2),
+            progressBarH,
 
-            bodyContainer.topAnchor.constraint(equalTo: loadingProgressBar.bottomAnchor),
+            bodyTop,
             bodyContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             bodyContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             bodyContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
@@ -1033,6 +1054,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             return
         }
 
+        if message.name == "fullscreenBridge" {
+            if let body = message.body as? [String: Any], let action = body["action"] as? String {
+                DispatchQueue.main.async { [weak self] in
+                    if action == "enter" {
+                        self?.enterVideoFullscreen()
+                    } else {
+                        self?.exitVideoFullscreen()
+                    }
+                }
+            }
+            return
+        }
+
         if message.name == "consoleLog" {
             if let text = message.body as? String {
                 jsConsoleController?.appendSystemLog(text)
@@ -1461,6 +1495,67 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func historyViewController(_ vc: HistoryViewController, didSelectURL url: URL) {
         tabManager.activeTab?.webView?.load(URLRequest(url: url))
+    }
+
+    // MARK: - Video Fullscreen
+
+    private func enterVideoFullscreen() {
+        guard !isVideoFullscreen, let window = window else { return }
+        isVideoFullscreen = true
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            ctx.allowsImplicitAnimation = true
+            self.tabBarHeightConstraint?.constant = 0
+            self.addressBarHeightConstraint?.constant = 0
+            self.toolbarHeightConstraint?.constant = 0
+            self.progressBarHeightConstraint?.constant = 0
+            self.treeTabSidebarWidth?.constant = 0
+            self.queueSidebarWidth?.constant = 0
+            self.summarySidebarWidth?.constant = 0
+            window.contentView?.layoutSubtreeIfNeeded()
+        }
+
+        window.titlebarAppearsTransparent = true
+        window.toolbar?.isVisible = false
+        if !window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    private func exitVideoFullscreen() {
+        guard isVideoFullscreen, let window = window else { return }
+        if window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        } else {
+            restoreFromVideoFullscreen()
+        }
+    }
+
+    private func restoreFromVideoFullscreen() {
+        isVideoFullscreen = false
+        let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
+        tabBarHeightConstraint?.constant = tabBarH
+        addressBarHeightConstraint?.constant = 36
+        toolbarHeightConstraint?.constant = 30
+        progressBarHeightConstraint?.constant = 2
+        if Settings.treeTabsEnabled {
+            treeTabSidebarWidth?.constant = TreeTabSidebarView.width
+        }
+        if isQueueVisible {
+            queueSidebarWidth?.constant = 280
+        }
+        if isSummaryVisible {
+            summarySidebarWidth?.constant = 360
+        }
+        window?.titlebarAppearsTransparent = false
+        window?.contentView?.layoutSubtreeIfNeeded()
+    }
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        guard isVideoFullscreen else { return }
+        restoreFromVideoFullscreen()
+        tabManager.activeTab?.webView?.evaluateJavaScript("document.exitFullscreen()")
     }
 
     // MARK: - NSWindowDelegate

@@ -87,6 +87,13 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject FullscreenBridge.js at document start (before YouTube's player loads)
+        if let jsURL = Bundle.main.url(forResource: "FullscreenBridge", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject TheaterMode.js at document start (before YouTube reads prefs)
         updateTheaterModeScript(on: config.userContentController)
 
@@ -94,8 +101,9 @@ class TabManager {
         // Note: pluginManager may not be set yet during lazy init,
         // so plugins are also injected in ensureWebView.
 
-        // PiP support
-        config.preferences.isElementFullscreenEnabled = true
+        // Fullscreen handled by FullscreenBridge.js → native macOS fullscreen
+        // Don't enable WebKit's element fullscreen (causes black screen)
+        config.preferences.isElementFullscreenEnabled = false
 
         // Enable password/passkey autofill
         if #available(macOS 14.0, *) {
