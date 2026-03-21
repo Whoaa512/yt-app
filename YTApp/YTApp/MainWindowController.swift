@@ -54,8 +54,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var webViewLeading: NSLayoutConstraint?
     private var webViewTrailingToTree: NSLayoutConstraint?
 
-    // Fullscreen
-    private var isVideoFullscreen = false
+
     private var tabBarHeightConstraint: NSLayoutConstraint?
     private var addressBarHeightConstraint: NSLayoutConstraint?
     private var toolbarHeightConstraint: NSLayoutConstraint?
@@ -109,7 +108,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
         tabManager.sharedConfiguration.userContentController.add(self, name: "inputFocusChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "linkHintsChanged")
-        tabManager.sharedConfiguration.userContentController.add(self, name: "fullscreenBridge")
+
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
         keyboardHandler.start()
@@ -1054,19 +1053,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             return
         }
 
-        if message.name == "fullscreenBridge" {
-            if let body = message.body as? [String: Any], let action = body["action"] as? String {
-                DispatchQueue.main.async { [weak self] in
-                    if action == "enter" {
-                        self?.enterVideoFullscreen()
-                    } else {
-                        self?.exitVideoFullscreen()
-                    }
-                }
-            }
-            return
-        }
-
         if message.name == "consoleLog" {
             if let text = message.body as? String {
                 jsConsoleController?.appendSystemLog(text)
@@ -1497,66 +1483,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.activeTab?.webView?.load(URLRequest(url: url))
     }
 
-    // MARK: - Video Fullscreen
 
-    private func enterVideoFullscreen() {
-        guard !isVideoFullscreen, let window = window else { return }
-        isVideoFullscreen = true
-
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            ctx.allowsImplicitAnimation = true
-            self.tabBarHeightConstraint?.constant = 0
-            self.addressBarHeightConstraint?.constant = 0
-            self.toolbarHeightConstraint?.constant = 0
-            self.progressBarHeightConstraint?.constant = 0
-            self.treeTabSidebarWidth?.constant = 0
-            self.queueSidebarWidth?.constant = 0
-            self.summarySidebarWidth?.constant = 0
-            window.contentView?.layoutSubtreeIfNeeded()
-        }
-
-        window.titlebarAppearsTransparent = true
-        window.toolbar?.isVisible = false
-        if !window.styleMask.contains(.fullScreen) {
-            window.toggleFullScreen(nil)
-        }
-    }
-
-    private func exitVideoFullscreen() {
-        guard isVideoFullscreen, let window = window else { return }
-        if window.styleMask.contains(.fullScreen) {
-            window.toggleFullScreen(nil)
-        } else {
-            restoreFromVideoFullscreen()
-        }
-    }
-
-    private func restoreFromVideoFullscreen() {
-        isVideoFullscreen = false
-        let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
-        tabBarHeightConstraint?.constant = tabBarH
-        addressBarHeightConstraint?.constant = 36
-        toolbarHeightConstraint?.constant = 30
-        progressBarHeightConstraint?.constant = 2
-        if Settings.treeTabsEnabled {
-            treeTabSidebarWidth?.constant = TreeTabSidebarView.width
-        }
-        if isQueueVisible {
-            queueSidebarWidth?.constant = 280
-        }
-        if isSummaryVisible {
-            summarySidebarWidth?.constant = 360
-        }
-        window?.titlebarAppearsTransparent = false
-        window?.contentView?.layoutSubtreeIfNeeded()
-    }
-
-    func windowDidExitFullScreen(_ notification: Notification) {
-        guard isVideoFullscreen else { return }
-        restoreFromVideoFullscreen()
-        tabManager.activeTab?.webView?.evaluateJavaScript("document.exitFullscreen()")
-    }
 
     // MARK: - NSWindowDelegate
 
