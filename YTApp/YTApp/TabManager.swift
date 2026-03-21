@@ -27,6 +27,7 @@ class TabManager {
         config.websiteDataStore = WKWebsiteDataStore.default()
         config.allowsAirPlayForMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        config.preferences.isElementFullscreenEnabled = true
         let prefs = WKWebpagePreferences()
         prefs.allowsContentJavaScript = true
         config.defaultWebpagePreferences = prefs
