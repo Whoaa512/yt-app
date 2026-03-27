@@ -30,6 +30,14 @@ class OfflineLibraryViewController: NSViewController, NSSearchFieldDelegate, NSC
     private func setupUI() {
         view.wantsLayer = true
 
+        let closeButton = NSButton(title: "✕", target: self, action: #selector(closeSheet))
+        closeButton.bezelStyle = .recessed
+        closeButton.isBordered = false
+        closeButton.font = .systemFont(ofSize: 16, weight: .medium)
+        closeButton.contentTintColor = .secondaryLabelColor
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(closeButton)
+
         searchField.placeholderString = "Search downloads..."
         searchField.delegate = self
         searchField.translatesAutoresizingMaskIntoConstraints = false
@@ -68,8 +76,13 @@ class OfflineLibraryViewController: NSViewController, NSSearchFieldDelegate, NSC
         view.addSubview(emptyLabel)
 
         NSLayoutConstraint.activate([
+            closeButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 8),
+            closeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            closeButton.widthAnchor.constraint(equalToConstant: 28),
+            closeButton.heightAnchor.constraint(equalToConstant: 28),
+
             searchField.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
-            searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            searchField.leadingAnchor.constraint(equalTo: closeButton.trailingAnchor, constant: 4),
             searchField.trailingAnchor.constraint(equalTo: addDirButton.leadingAnchor, constant: -8),
 
             addDirButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
@@ -95,6 +108,14 @@ class OfflineLibraryViewController: NSViewController, NSSearchFieldDelegate, NSC
 
     func controlTextDidChange(_ obj: Notification) {
         loadVideos(query: searchField.stringValue)
+    }
+
+    @objc private func closeSheet() {
+        dismiss(nil)
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        dismiss(nil)
     }
 
     @objc private func addExternalDirectory() {
