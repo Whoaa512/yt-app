@@ -6,7 +6,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
     KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
     TreeTabSidebarDelegate, SummarySidebarDelegate, YTWebViewContextMenuDelegate,
-    DownloadManagerDelegate, OfflineLibraryDelegate, OfflinePlayerDelegate {
+    DownloadManagerDelegate, OfflineLibraryViewDelegate, OfflinePlayerDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -843,7 +843,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func tabManager(_ manager: TabManager, didSelectTab tab: Tab, at index: Int) {
-        dismissOfflinePlayer()
+        dismissOfflineViews()
         displayWebView(for: tab)
         observeLoadingProgress(for: tab.webView)
         if let ytWV = tab.webView as? YTWebView {
@@ -1348,9 +1348,35 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     @objc func showOfflineLibrary() {
-        let vc = OfflineLibraryViewController()
-        vc.libraryDelegate = self
-        presentAsSheet(vc)
+        dismissOfflinePlayer()
+
+        if offlineLibrary == nil {
+            let lib = OfflineLibraryView(frame: .zero)
+            lib.delegate = self
+            lib.translatesAutoresizingMaskIntoConstraints = false
+            offlineLibrary = lib
+        }
+
+        guard let lib = offlineLibrary else { return }
+
+        if let activeWebView = tabManager.activeTab?.webView {
+            activeWebView.isHidden = true
+        }
+
+        if lib.superview == nil {
+            webViewContainer.addSubview(lib)
+            NSLayoutConstraint.activate([
+                lib.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                lib.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                lib.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                lib.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+            ])
+        }
+        lib.isHidden = false
+        lib.reload()
+
+        addressBar.setURL(URL(string: "ytapp://offline"))
+        window?.makeFirstResponder(lib)
     }
 
     func downloadManager(_ manager: DownloadManager, didUpdateProgress download: ActiveDownload) {
@@ -1360,6 +1386,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func downloadManager(_ manager: DownloadManager, didComplete videoId: String) {
         toolbar.updateDownloadProgress(0, active: manager.hasActiveDownloads)
         showToast("Download complete")
+        offlineLibrary?.reload()
     }
 
     func downloadManager(_ manager: DownloadManager, didFail videoId: String, error: String) {
@@ -1367,16 +1394,40 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         showToast("Download failed: \(error)")
     }
 
-    // MARK: - OfflineLibraryDelegate
+    // MARK: - OfflineLibraryViewDelegate
 
-    func offlineLibrary(_ vc: OfflineLibraryViewController, playVideo video: DownloadedVideo) {
-        vc.dismiss(nil)
+    func offlineLibraryDidSelectVideo(_ view: OfflineLibraryView, video: DownloadedVideo) {
         playOfflineVideo(video)
     }
 
+    func offlineLibraryDidRequestDismiss(_ view: OfflineLibraryView) {
+        dismissOfflineLibrary()
+    }
+
+    func offlineLibraryDidRequestAddFolder(_ view: OfflineLibraryView) {
+        guard let window else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.message = "Select folders containing .mp4 or .webm files"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK else { return }
+            var dirs = Settings.offlineExtraDirectories
+            for url in panel.urls {
+                if !dirs.contains(url.path) { dirs.append(url.path) }
+            }
+            Settings.offlineExtraDirectories = dirs
+            self?.offlineLibrary?.reload()
+        }
+    }
+
+    private var offlineLibrary: OfflineLibraryView?
     private var offlinePlayer: OfflinePlayerView?
 
     private func playOfflineVideo(_ video: DownloadedVideo) {
+        offlineLibrary?.isHidden = true
+
         if offlinePlayer == nil {
             let player = OfflinePlayerView(frame: .zero)
             player.delegate = self
@@ -1408,9 +1459,34 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         window?.makeFirstResponder(player)
     }
 
+    private func dismissOfflineViews() {
+        offlinePlayer?.cleanup()
+        offlinePlayer?.isHidden = true
+        offlineLibrary?.isHidden = true
+        if let activeWebView = tabManager.activeTab?.webView {
+            activeWebView.isHidden = false
+        }
+    }
+
+    private func dismissOfflineLibrary() {
+        offlineLibrary?.isHidden = true
+        if let activeWebView = tabManager.activeTab?.webView {
+            activeWebView.isHidden = false
+        }
+    }
+
     func dismissOfflinePlayer() {
         offlinePlayer?.cleanup()
         offlinePlayer?.isHidden = true
+
+        if offlineLibrary != nil {
+            offlineLibrary?.isHidden = false
+            offlineLibrary?.reload()
+            addressBar.setURL(URL(string: "ytapp://offline"))
+            window?.makeFirstResponder(offlineLibrary)
+            return
+        }
+
         if let activeWebView = tabManager.activeTab?.webView {
             activeWebView.isHidden = false
         }

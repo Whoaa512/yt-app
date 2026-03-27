@@ -48,7 +48,7 @@
 		AA000038 /* InputFocusTracker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000040; };
 		AA000039 /* FullscreenBridge.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000041; };
 		AA000040 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000042; };
-		AA000041 /* OfflineLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000043; };
+		AA000041 /* OfflineLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000043; };
 		AA000042 /* OfflinePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000044; };
 /* End PBXBuildFile section */
 
@@ -96,7 +96,7 @@
 		BB000040 /* InputFocusTracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = InputFocusTracker.js; sourceTree = "<group>"; };
 		BB000041 /* FullscreenBridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = FullscreenBridge.js; sourceTree = "<group>"; };
 		BB000042 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
-		BB000043 /* OfflineLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLibraryViewController.swift; sourceTree = "<group>"; };
+		BB000043 /* OfflineLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLibraryView.swift; sourceTree = "<group>"; };
 		BB000044 /* OfflinePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePlayerView.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -151,7 +151,7 @@
 				BB000037 /* SummarySidebarView.swift */,
 				BB000038 /* YTWebView.swift */,
 				BB000042 /* DownloadManager.swift */,
-				BB000043 /* OfflineLibraryViewController.swift */,
+				BB000043 /* OfflineLibraryView.swift */,
 				BB000044 /* OfflinePlayerView.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
@@ -301,7 +301,7 @@
 				AA000035 /* SummarySidebarView.swift in Sources */,
 				AA000036 /* YTWebView.swift in Sources */,
 				AA000040 /* DownloadManager.swift in Sources */,
-				AA000041 /* OfflineLibraryViewController.swift in Sources */,
+				AA000041 /* OfflineLibraryView.swift in Sources */,
 				AA000042 /* OfflinePlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
