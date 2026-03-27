@@ -72,6 +72,28 @@ struct Settings {
         set { defaults.set(newValue, forKey: "treeTabsEnabled") }
     }
 
+    // MARK: - Downloads
+
+    static var downloadPath: String {
+        get { defaults.string(forKey: "downloadPath") ?? NSString("~/.cache/ytapp").expandingTildeInPath }
+        set { defaults.set(newValue, forKey: "downloadPath") }
+    }
+
+    static var downloadQuality: String {
+        get { defaults.string(forKey: "downloadQuality") ?? "1080p" }
+        set { defaults.set(newValue, forKey: "downloadQuality") }
+    }
+
+    static var downloadSubtitles: Bool {
+        get { defaults.bool(forKey: "downloadSubtitles") }
+        set { defaults.set(newValue, forKey: "downloadSubtitles") }
+    }
+
+    static var offlineExtraDirectories: [String] {
+        get { defaults.stringArray(forKey: "offlineExtraDirectories") ?? [] }
+        set { defaults.set(newValue, forKey: "offlineExtraDirectories") }
+    }
+
     enum SidebarSide: String {
         case left, right
     }

@@ -15,6 +15,8 @@ protocol ToolbarDelegate: AnyObject {
     func toolbar(_ toolbar: ToolbarView, didSeekTo fraction: Double)
     func toolbarCurrentChannel(_ toolbar: ToolbarView) -> String?
     func toolbarIsPinned(_ toolbar: ToolbarView) -> Bool
+    func toolbarDownloadCurrentVideo(_ toolbar: ToolbarView)
+    func toolbarShowOfflineLibrary(_ toolbar: ToolbarView)
 }
 
 class ToolbarView: NSView, NSTextFieldDelegate {
@@ -24,6 +26,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private let rateStepper = NSStepper()
     private var currentRate: Float = 1.0
     private var pipButton: ToolbarButton!
+    private var downloadButton: ToolbarButton!
     private var hoverButtons: [ToolbarButton] = []
     private var resetBtn: NSButton!
     private let nowPlayingLabel = NSTextField(labelWithString: "")
@@ -31,6 +34,7 @@ class ToolbarView: NSView, NSTextFieldDelegate {
     private let seekSlider = NSSlider()
     private let seekTimeLabel = NSTextField(labelWithString: "")
     private var currentDuration: Double = 0
+    private var downloadProgressLayer: CALayer?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -156,8 +160,22 @@ class ToolbarView: NSView, NSTextFieldDelegate {
 
         let sep3 = makeDot()
 
+        // Download button
+        downloadButton = ToolbarButton(symbolName: "arrow.down.circle", tooltip: "Download (⌘D)", target: self, action: #selector(doDownload))
+        hoverButtons.append(downloadButton)
+
+        let libraryBtn = ToolbarButton(symbolName: "folder.fill", tooltip: "Offline Library (⌘L)", target: self, action: #selector(doShowLibrary))
+        hoverButtons.append(libraryBtn)
+
+        let dlStack = NSStackView(views: [downloadButton, libraryBtn])
+        dlStack.orientation = .horizontal
+        dlStack.spacing = 2
+        dlStack.translatesAutoresizingMaskIntoConstraints = false
+
+        let sep4 = makeDot()
+
         // Center container
-        let centerStack = NSStackView(views: [navStack, sep1, playStack, sep2, speedStack, sep3, volStack])
+        let centerStack = NSStackView(views: [navStack, sep1, playStack, sep2, speedStack, sep3, volStack, sep4, dlStack])
         centerStack.orientation = .horizontal
         centerStack.spacing = 10
         centerStack.alignment = .centerY
@@ -395,6 +413,18 @@ class ToolbarView: NSView, NSTextFieldDelegate {
         pipButton.toolTip = tooltip
         if let iv = pipButton.subviews.compactMap({ $0 as? NSImageView }).first {
             iv.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: tooltip)?.withSymbolConfiguration(config)
+        }
+    }
+
+    @objc private func doDownload() { delegate?.toolbarDownloadCurrentVideo(self) }
+    @objc private func doShowLibrary() { delegate?.toolbarShowOfflineLibrary(self) }
+
+    func updateDownloadProgress(_ progress: Double, active: Bool) {
+        if active {
+            let pct = Int(progress * 100)
+            downloadButton.toolTip = "Downloading... \(pct)%"
+        } else {
+            downloadButton.toolTip = "Download (⌘D)"
         }
     }
 

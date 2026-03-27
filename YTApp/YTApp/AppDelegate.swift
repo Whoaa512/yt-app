@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize history database
         HistoryManager.shared.setup()
+        DownloadManager.shared.setup()
 
         mainWindowController = MainWindowController()
         mainWindowController.showWindow(nil)

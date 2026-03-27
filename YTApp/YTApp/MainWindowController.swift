@@ -5,7 +5,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
     KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
-    TreeTabSidebarDelegate, SummarySidebarDelegate, YTWebViewContextMenuDelegate {
+    TreeTabSidebarDelegate, SummarySidebarDelegate, YTWebViewContextMenuDelegate,
+    DownloadManagerDelegate, OfflineLibraryDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -453,6 +454,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         historyMenuItem.submenu = historyMenu
         mainMenu.addItem(historyMenuItem)
 
+        let downloadsMenu = NSMenu(title: "Downloads")
+        downloadsMenu.addItem(withTitle: "Download Current Video", action: #selector(menuDownloadVideo), keyEquivalent: "d")
+        downloadsMenu.addItem(withTitle: "Offline Library", action: #selector(showOfflineLibrary), keyEquivalent: "l")
+        let downloadsMenuItem = NSMenuItem()
+        downloadsMenuItem.submenu = downloadsMenu
+        mainMenu.addItem(downloadsMenuItem)
+
         NSApp.mainMenu = mainMenu
     }
 
@@ -607,6 +615,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let vc = HistoryViewController()
         vc.historyDelegate = self
         presentAsSheet(vc)
+    }
+
+    @objc func menuDownloadVideo() {
+        toolbarDownloadCurrentVideo(toolbar)
     }
 
     private func presentAsSheet(_ vc: NSViewController) {
@@ -831,6 +843,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func tabManager(_ manager: TabManager, didSelectTab tab: Tab, at index: Int) {
+        dismissOfflinePlayer()
         displayWebView(for: tab)
         observeLoadingProgress(for: tab.webView)
         if let ytWV = tab.webView as? YTWebView {
@@ -1309,6 +1322,120 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
     }
 
+    // MARK: - Downloads
+
+    func ytWebViewDownloadVideo(url videoURL: String) {
+        downloadVideoURL(videoURL)
+    }
+
+    func toolbarDownloadCurrentVideo(_ toolbar: ToolbarView) {
+        guard let url = tabManager.activeTab?.webView?.url?.absoluteString,
+              url.contains("youtube.com/watch") || url.contains("youtu.be") || url.contains("/shorts/") else {
+            showToast("No video to download")
+            return
+        }
+        downloadVideoURL(url)
+    }
+
+    func toolbarShowOfflineLibrary(_ toolbar: ToolbarView) {
+        showOfflineLibrary()
+    }
+
+    private func downloadVideoURL(_ url: String, quality: String? = nil) {
+        DownloadManager.shared.delegate = self
+        DownloadManager.shared.download(url: url, quality: quality)
+        showToast("Download started")
+    }
+
+    @objc func showOfflineLibrary() {
+        let vc = OfflineLibraryViewController()
+        vc.libraryDelegate = self
+        presentAsSheet(vc)
+    }
+
+    func downloadManager(_ manager: DownloadManager, didUpdateProgress download: ActiveDownload) {
+        toolbar.updateDownloadProgress(manager.overallProgress, active: manager.hasActiveDownloads)
+    }
+
+    func downloadManager(_ manager: DownloadManager, didComplete videoId: String) {
+        toolbar.updateDownloadProgress(0, active: manager.hasActiveDownloads)
+        showToast("Download complete")
+    }
+
+    func downloadManager(_ manager: DownloadManager, didFail videoId: String, error: String) {
+        toolbar.updateDownloadProgress(0, active: manager.hasActiveDownloads)
+        showToast("Download failed: \(error)")
+    }
+
+    // MARK: - OfflineLibraryDelegate
+
+    func offlineLibrary(_ vc: OfflineLibraryViewController, playVideo video: DownloadedVideo) {
+        vc.dismiss(nil)
+        playOfflineVideo(video)
+    }
+
+    private var offlinePlayerWebView: WKWebView?
+
+    private func playOfflineVideo(_ video: DownloadedVideo) {
+        if offlinePlayerWebView == nil {
+            let config = WKWebViewConfiguration()
+            config.preferences.isElementFullscreenEnabled = true
+            let wv = WKWebView(frame: .zero, configuration: config)
+            wv.translatesAutoresizingMaskIntoConstraints = false
+            offlinePlayerWebView = wv
+        }
+
+        guard let wv = offlinePlayerWebView else { return }
+
+        // Hide the regular webview, show offline player
+        if let activeWebView = tabManager.activeTab?.webView {
+            activeWebView.isHidden = true
+        }
+
+        if wv.superview == nil {
+            webViewContainer.addSubview(wv)
+            NSLayoutConstraint.activate([
+                wv.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                wv.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                wv.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+            ])
+        }
+        wv.isHidden = false
+
+        guard let htmlURL = Bundle.main.url(forResource: "OfflinePlayer", withExtension: "html") else { return }
+        wv.loadFileURL(htmlURL, allowingReadAccessTo: URL(fileURLWithPath: "/"))
+
+        let fileURL = URL(fileURLWithPath: video.videoPath).absoluteString
+        let title = video.title.replacingOccurrences(of: "'", with: "\\'")
+        let channel = video.channel.replacingOccurrences(of: "'", with: "\\'")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            let allVideos = DownloadManager.shared.allVideos()
+            let currentIdx = allVideos.firstIndex(where: { $0.id == video.id }) ?? 0
+
+            var playlistJS = "["
+            for v in allVideos {
+                let fp = URL(fileURLWithPath: v.videoPath).absoluteString
+                let t = v.title.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\")
+                let c = v.channel.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\")
+                playlistJS += "{filePath:'\(fp)',title:'\(t)',channel:'\(c)',duration:'\(v.durationFormatted)'},"
+            }
+            playlistJS += "]"
+
+            wv.evaluateJavaScript("loadPlaylist(\(playlistJS), \(currentIdx))")
+        }
+
+        addressBar.setURL(URL(string: "ytapp://offline/\(video.id)"))
+    }
+
+    func dismissOfflinePlayer() {
+        offlinePlayerWebView?.isHidden = true
+        if let activeWebView = tabManager.activeTab?.webView {
+            activeWebView.isHidden = false
+        }
+    }
+
     // MARK: - TreeTabSidebarDelegate
 
     func treeTabSidebar(_ sidebar: TreeTabSidebarView, didSelectTab tab: Tab) {
@@ -1691,20 +1818,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     }
 
     func shortcutDownloadVideo() {
-        guard let urlStr = tabManager.activeTab?.webView?.url?.absoluteString,
-              urlStr.contains("youtube.com/watch") else {
-            showToast("Not a video page")
-            return
-        }
-        showToast("Downloading…")
-        VideoDownloader.download(url: urlStr) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let path): self?.showToast("Downloaded: \(path)")
-                case .failure(let err): self?.showToast("Download failed: \(err.localizedDescription)")
-                }
-            }
-        }
+        toolbarDownloadCurrentVideo(toolbar)
     }
 
     func shortcutStartElementPicker() {
