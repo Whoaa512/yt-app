@@ -6,7 +6,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
     KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
     TreeTabSidebarDelegate, SummarySidebarDelegate, YTWebViewContextMenuDelegate,
-    DownloadManagerDelegate, OfflineLibraryDelegate {
+    DownloadManagerDelegate, OfflineLibraryDelegate, OfflinePlayerDelegate {
 
     let tabManager = TabManager()
     private let addressBar = AddressBarView(frame: .zero)
@@ -1374,66 +1374,50 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         playOfflineVideo(video)
     }
 
-    private var offlinePlayerWebView: WKWebView?
+    private var offlinePlayer: OfflinePlayerView?
 
     private func playOfflineVideo(_ video: DownloadedVideo) {
-        if offlinePlayerWebView == nil {
-            let config = WKWebViewConfiguration()
-            config.preferences.isElementFullscreenEnabled = true
-            let wv = WKWebView(frame: .zero, configuration: config)
-            wv.translatesAutoresizingMaskIntoConstraints = false
-            offlinePlayerWebView = wv
+        if offlinePlayer == nil {
+            let player = OfflinePlayerView(frame: .zero)
+            player.delegate = self
+            player.translatesAutoresizingMaskIntoConstraints = false
+            offlinePlayer = player
         }
 
-        guard let wv = offlinePlayerWebView else { return }
+        guard let player = offlinePlayer else { return }
 
-        // Hide the regular webview, show offline player
         if let activeWebView = tabManager.activeTab?.webView {
             activeWebView.isHidden = true
         }
 
-        if wv.superview == nil {
-            webViewContainer.addSubview(wv)
+        if player.superview == nil {
+            webViewContainer.addSubview(player)
             NSLayoutConstraint.activate([
-                wv.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
-                wv.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
-                wv.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
-                wv.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
+                player.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                player.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                player.leadingAnchor.constraint(equalTo: webViewContainer.leadingAnchor),
+                player.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor),
             ])
         }
-        wv.isHidden = false
+        player.isHidden = false
 
-        guard let htmlURL = Bundle.main.url(forResource: "OfflinePlayer", withExtension: "html") else { return }
-        wv.loadFileURL(htmlURL, allowingReadAccessTo: URL(fileURLWithPath: "/"))
-
-        let fileURL = URL(fileURLWithPath: video.videoPath).absoluteString
-        let title = video.title.replacingOccurrences(of: "'", with: "\\'")
-        let channel = video.channel.replacingOccurrences(of: "'", with: "\\'")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let allVideos = DownloadManager.shared.allVideos()
-            let currentIdx = allVideos.firstIndex(where: { $0.id == video.id }) ?? 0
-
-            var playlistJS = "["
-            for v in allVideos {
-                let fp = URL(fileURLWithPath: v.videoPath).absoluteString
-                let t = v.title.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\")
-                let c = v.channel.replacingOccurrences(of: "'", with: "\\'").replacingOccurrences(of: "\\", with: "\\\\")
-                playlistJS += "{filePath:'\(fp)',title:'\(t)',channel:'\(c)',duration:'\(v.durationFormatted)'},"
-            }
-            playlistJS += "]"
-
-            wv.evaluateJavaScript("loadPlaylist(\(playlistJS), \(currentIdx))")
-        }
+        let allVideos = DownloadManager.shared.allVideos()
+        player.play(video: video, playlist: allVideos)
 
         addressBar.setURL(URL(string: "ytapp://offline/\(video.id)"))
+        window?.makeFirstResponder(player)
     }
 
     func dismissOfflinePlayer() {
-        offlinePlayerWebView?.isHidden = true
+        offlinePlayer?.cleanup()
+        offlinePlayer?.isHidden = true
         if let activeWebView = tabManager.activeTab?.webView {
             activeWebView.isHidden = false
         }
+    }
+
+    func offlinePlayerDidRequestDismiss(_ player: OfflinePlayerView) {
+        dismissOfflinePlayer()
     }
 
     // MARK: - TreeTabSidebarDelegate

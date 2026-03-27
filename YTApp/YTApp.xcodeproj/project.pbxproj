@@ -49,7 +49,7 @@
 		AA000039 /* FullscreenBridge.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000041; };
 		AA000040 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000042; };
 		AA000041 /* OfflineLibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000043; };
-		AA000042 /* OfflinePlayer.html in Resources */ = {isa = PBXBuildFile; fileRef = BB000044; };
+		AA000042 /* OfflinePlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000044; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -97,7 +97,7 @@
 		BB000041 /* FullscreenBridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = FullscreenBridge.js; sourceTree = "<group>"; };
 		BB000042 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		BB000043 /* OfflineLibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineLibraryViewController.swift; sourceTree = "<group>"; };
-		BB000044 /* OfflinePlayer.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = OfflinePlayer.html; sourceTree = "<group>"; };
+		BB000044 /* OfflinePlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePlayerView.swift; sourceTree = "<group>"; };
 		CC000001 /* YTApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YTApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -152,7 +152,7 @@
 				BB000038 /* YTWebView.swift */,
 				BB000042 /* DownloadManager.swift */,
 				BB000043 /* OfflineLibraryViewController.swift */,
-				BB000044 /* OfflinePlayer.html */,
+				BB000044 /* OfflinePlayerView.swift */,
 				BB000011 /* Assets.xcassets */,
 				BB000015 /* Info.plist */,
 				BB000016 /* YTApp.entitlements */,
@@ -263,7 +263,7 @@
 				AA000037 /* SummarizeContext.js in Resources */,
 				AA000038 /* InputFocusTracker.js in Resources */,
 				AA000039 /* FullscreenBridge.js in Resources */,
-				AA000042 /* OfflinePlayer.html in Resources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,6 +302,7 @@
 				AA000036 /* YTWebView.swift in Sources */,
 				AA000040 /* DownloadManager.swift in Sources */,
 				AA000041 /* OfflineLibraryViewController.swift in Sources */,
+				AA000042 /* OfflinePlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
