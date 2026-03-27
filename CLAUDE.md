@@ -34,6 +34,9 @@ Or manually: `cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=
 | `URLRouter.swift` | Domain allowlist, external URL handling |
 | `YTWebView.swift` | WKWebView subclass with right-click context menu (Summarize) |
 | `SummarySidebarView.swift` | Right-side drawer showing video summaries |
+| `DownloadManager.swift` | yt-dlp download backend, SQLite metadata, progress tracking |
+| `OfflineLibraryView.swift` | Full-page inline grid of downloaded videos (YouTube-style cards) |
+| `OfflinePlayerView.swift` | Native AVPlayerView player with playlist nav, PiP, speed controls |
 
 ### JavaScript (`YTApp/YTApp/JS/`)
 | File | Injection | Role |
