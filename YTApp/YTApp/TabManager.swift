@@ -27,7 +27,7 @@ class TabManager {
         config.websiteDataStore = WKWebsiteDataStore.default()
         config.allowsAirPlayForMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        config.preferences.isElementFullscreenEnabled = true
+        config.preferences.isElementFullscreenEnabled = false
         let prefs = WKWebpagePreferences()
         prefs.allowsContentJavaScript = true
         config.defaultWebpagePreferences = prefs
@@ -67,6 +67,13 @@ class TabManager {
             config.userContentController.addUserScript(script)
         }
 
+        // Inject FullscreenBridge.js at document start (before YouTube's fullscreen API is used)
+        if let jsURL = Bundle.main.url(forResource: "FullscreenBridge", withExtension: "js"),
+           let jsSource = try? String(contentsOf: jsURL) {
+            let script = WKUserScript(source: jsSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            config.userContentController.addUserScript(script)
+        }
+
         // Inject QueueInterceptor.js at document start (capture phase needs early registration)
         if Settings.queueEnabled,
            let jsURL = Bundle.main.url(forResource: "QueueInterceptor", withExtension: "js"),
@@ -96,7 +103,7 @@ class TabManager {
         // Note: pluginManager may not be set yet during lazy init,
         // so plugins are also injected in ensureWebView.
 
-        config.preferences.isElementFullscreenEnabled = true
+        config.preferences.isElementFullscreenEnabled = false
 
         // Enable password/passkey autofill
         if #available(macOS 14.0, *) {

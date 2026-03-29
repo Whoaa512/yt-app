@@ -47,6 +47,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var isSummaryVisible = false
     private var summarizeProcess: Process?
 
+    // Element fullscreen
+    private var isElementFullscreen = false
+
     // Tree tab sidebar
     private var treeTabSidebar: TreeTabSidebarView?
     private var treeTabSidebarWidth: NSLayoutConstraint?
@@ -109,6 +112,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         tabManager.sharedConfiguration.userContentController.add(self, name: "pluginBridge")
         tabManager.sharedConfiguration.userContentController.add(self, name: "inputFocusChanged")
         tabManager.sharedConfiguration.userContentController.add(self, name: "linkHintsChanged")
+        tabManager.sharedConfiguration.userContentController.add(self, name: "fullscreenBridge")
 
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
@@ -1066,6 +1070,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             return
         }
 
+        if message.name == "fullscreenBridge" {
+            if let body = message.body as? [String: Any], let action = body["action"] as? String {
+                if action == "enter" {
+                    enterElementFullscreen()
+                } else if action == "exit" {
+                    exitElementFullscreen()
+                }
+            }
+            return
+        }
+
         if message.name == "consoleLog" {
             if let text = message.body as? String {
                 jsConsoleController?.appendSystemLog(text)
@@ -1226,6 +1241,64 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 handleVideoEnded()
             }
         }
+    }
+
+    // MARK: - Element Fullscreen
+
+    private func enterElementFullscreen() {
+        guard !isElementFullscreen else { return }
+        isElementFullscreen = true
+
+        guard let window = self.window else { return }
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            self.tabBarHeightConstraint?.animator().constant = 0
+            self.addressBarHeightConstraint?.animator().constant = 0
+            self.toolbarHeightConstraint?.animator().constant = 0
+            self.progressBarHeightConstraint?.animator().constant = 0
+            self.treeTabSidebarWidth?.animator().constant = 0
+            if self.isQueueVisible { self.queueSidebarWidth?.animator().constant = 0 }
+            if self.isSummaryVisible { self.summarySidebarWidth?.animator().constant = 0 }
+        }
+
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.toolbar?.isVisible = false
+        window.styleMask.insert(.fullSizeContentView)
+
+        if !window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    private func exitElementFullscreen() {
+        guard isElementFullscreen else { return }
+        isElementFullscreen = false
+
+        guard let window = self.window else { return }
+
+        if window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+        }
+
+        let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
+        let treeW: CGFloat = Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            self.tabBarHeightConstraint?.animator().constant = tabBarH
+            self.addressBarHeightConstraint?.animator().constant = 36
+            self.toolbarHeightConstraint?.animator().constant = 30
+            self.progressBarHeightConstraint?.animator().constant = 2
+            self.treeTabSidebarWidth?.animator().constant = treeW
+            if self.isQueueVisible { self.queueSidebarWidth?.animator().constant = QueueSidebarView.width }
+            if self.isSummaryVisible { self.summarySidebarWidth?.animator().constant = SummarySidebarView.width }
+        }
+
+        window.titlebarAppearsTransparent = false
+        window.titleVisibility = .visible
+        window.styleMask.remove(.fullSizeContentView)
     }
 
     // MARK: - Queue
@@ -1673,6 +1746,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
 
     // MARK: - NSWindowDelegate
+
+    func windowDidExitFullScreen(_ notification: Notification) {
+        if isElementFullscreen {
+            isElementFullscreen = false
+            let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
+            let treeW: CGFloat = Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0
+            tabBarHeightConstraint?.constant = tabBarH
+            addressBarHeightConstraint?.constant = 36
+            toolbarHeightConstraint?.constant = 30
+            progressBarHeightConstraint?.constant = 2
+            treeTabSidebarWidth?.constant = treeW
+            if isQueueVisible { queueSidebarWidth?.constant = QueueSidebarView.width }
+            if isSummaryVisible { summarySidebarWidth?.constant = SummarySidebarView.width }
+            window?.titlebarAppearsTransparent = false
+            window?.titleVisibility = .visible
+            window?.styleMask.remove(.fullSizeContentView)
+            tabManager.activeTab?.webView?.evaluateJavaScript("document.fullscreenElement && document.exitFullscreen()")
+        }
+    }
 
     func windowWillClose(_ notification: Notification) {
         progressObservation?.invalidate()
