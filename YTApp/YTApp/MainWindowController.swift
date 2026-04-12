@@ -234,11 +234,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let summSidebarWidth = summSidebar.widthAnchor.constraint(equalToConstant: 0)
         self.summarySidebarWidth = summSidebarWidth
 
-        let treeWidth = treeSidebar.widthAnchor.constraint(equalToConstant: Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0)
+        let treeVisible = Settings.treeTabsEnabled && !Settings.treeTabsCollapsed
+        let treeWidth = treeSidebar.widthAnchor.constraint(equalToConstant: treeVisible ? TreeTabSidebarView.width : 0)
         self.treeTabSidebarWidth = treeWidth
 
-        // Hide horizontal tab bar when tree tabs enabled
-        let tabBarHeight: CGFloat = Settings.treeTabsEnabled ? 0 : 30
+        // Hide horizontal tab bar when tree tabs visible
+        let tabBarHeight: CGFloat = treeVisible ? 0 : 30
 
         let tabBarH = tabBarContainer.heightAnchor.constraint(equalToConstant: tabBarHeight)
         let addressBarH = addressBar.heightAnchor.constraint(equalToConstant: 36)
@@ -1286,8 +1287,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             window.toggleFullScreen(nil)
         }
 
-        let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
-        let treeW: CGFloat = Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0
+        let treeVis = Settings.treeTabsEnabled && !Settings.treeTabsCollapsed
+        let tabBarH: CGFloat = treeVis ? 0 : 30
+        let treeW: CGFloat = treeVis ? TreeTabSidebarView.width : 0
 
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2
@@ -1303,6 +1305,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         window.titlebarAppearsTransparent = false
         window.titleVisibility = .visible
         window.styleMask.remove(.fullSizeContentView)
+    }
+
+    // MARK: - Tree Tab Sidebar Toggle
+
+    func toggleTreeTabSidebar() {
+        guard Settings.treeTabsEnabled else { return }
+        Settings.treeTabsCollapsed.toggle()
+        let collapsed = Settings.treeTabsCollapsed
+        let treeW: CGFloat = collapsed ? 0 : TreeTabSidebarView.width
+        let tabBarH: CGFloat = collapsed ? 30 : 0
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            self.treeTabSidebarWidth?.animator().constant = treeW
+            self.tabBarHeightConstraint?.animator().constant = tabBarH
+        }
+        if !collapsed {
+            treeTabSidebar?.reload()
+        }
     }
 
     // MARK: - Queue
@@ -1754,8 +1775,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func windowDidExitFullScreen(_ notification: Notification) {
         if isElementFullscreen {
             isElementFullscreen = false
-            let tabBarH: CGFloat = Settings.treeTabsEnabled ? 0 : 30
-            let treeW: CGFloat = Settings.treeTabsEnabled ? TreeTabSidebarView.width : 0
+            let treeVis = Settings.treeTabsEnabled && !Settings.treeTabsCollapsed
+            let tabBarH: CGFloat = treeVis ? 0 : 30
+            let treeW: CGFloat = treeVis ? TreeTabSidebarView.width : 0
             tabBarHeightConstraint?.constant = tabBarH
             addressBarHeightConstraint?.constant = 36
             toolbarHeightConstraint?.constant = 30
@@ -1880,6 +1902,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     func shortcutRefresh() { tabManager.activeTab?.webView?.reload() }
     func shortcutPlayPause() { toolbar.delegate?.toolbarPlayPause(toolbar) }
     func shortcutToggleQueue() { toggleQueue() }
+    func shortcutToggleTreeTabs() { toggleTreeTabSidebar() }
     func shortcutShowHistory() { showHistory() }
 
     func shortcutToggleSuspendTab() {

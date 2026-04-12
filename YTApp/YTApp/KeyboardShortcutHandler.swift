@@ -27,6 +27,7 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutSuspendOtherTabs()
     func shortcutUnsuspendAllTabs()
     func shortcutDownloadVideo()
+    func shortcutToggleTreeTabs()
     func shortcutActiveWebView() -> WKWebView?
     func shortcutActiveURL() -> String?
 }
@@ -69,6 +70,7 @@ class KeyboardShortcutHandler {
         // Playback
         // Panels
         Shortcut(key: "a", label: "Add nearest video to queue", category: "Queue"),
+        Shortcut(key: "e", label: "Toggle vertical tabs", category: "Panels"),
         Shortcut(key: "q", label: "Toggle queue sidebar", category: "Panels"),
         Shortcut(key: "gh", label: "Show history", category: "Panels"),
         // Other
@@ -99,6 +101,12 @@ class KeyboardShortcutHandler {
     /// Returns true if the event was consumed.
     private func handleKeyDown(_ event: NSEvent) -> Bool {
         let mods = event.modifierFlags.intersection([.command, .control, .option])
+
+        // Cmd+Shift+E to toggle vertical tabs
+        if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "e" {
+            delegate?.shortcutToggleTreeTabs()
+            return true
+        }
 
         // Ctrl+Tab / Ctrl+Shift+Tab for tab switching
         if mods.contains(.control) && event.keyCode == 48 {
@@ -202,6 +210,7 @@ class KeyboardShortcutHandler {
                 delegate?.shortcutScrollUp()
             }
             return true
+        case "e": delegate?.shortcutToggleTreeTabs(); return true
         case "a": delegate?.shortcutQueueNearestVideo(); return true
         case "q": delegate?.shortcutToggleQueue(); return true
         case "G": delegate?.shortcutScrollBottom(); return true

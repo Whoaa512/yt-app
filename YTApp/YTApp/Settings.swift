@@ -72,6 +72,11 @@ struct Settings {
         set { defaults.set(newValue, forKey: "treeTabsEnabled") }
     }
 
+    static var treeTabsCollapsed: Bool {
+        get { defaults.bool(forKey: "treeTabsCollapsed") }
+        set { defaults.set(newValue, forKey: "treeTabsCollapsed") }
+    }
+
     // MARK: - Downloads
 
     static var downloadPath: String {
