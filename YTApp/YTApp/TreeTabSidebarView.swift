@@ -339,6 +339,14 @@ class TreeTabCellView: NSTableCellView {
         onContextMenu?(event)
     }
 
+    override func otherMouseUp(with event: NSEvent) {
+        if event.buttonNumber == 2 {
+            onClose?()
+        } else {
+            super.otherMouseUp(with: event)
+        }
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let t = trackingArea { removeTrackingArea(t) }

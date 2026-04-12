@@ -1023,7 +1023,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url {
-            openBackgroundTab(url: url)
+            if URLRouter.isAllowed(url) {
+                openBackgroundTab(url: url)
+            } else {
+                URLRouter.openInDefaultBrowser(url)
+            }
         }
         return nil
     }
