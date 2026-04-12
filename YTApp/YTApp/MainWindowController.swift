@@ -5,7 +5,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
     HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
     KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
-    TreeTabSidebarDelegate, SummarySidebarDelegate, YTWebViewContextMenuDelegate,
+    TreeTabSidebarDelegate, YTWebViewContextMenuDelegate,
     DownloadManagerDelegate, OfflineLibraryViewDelegate, OfflinePlayerDelegate {
 
     let tabManager = TabManager()
@@ -41,10 +41,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var queueSidebarWidth: NSLayoutConstraint?
     private var isQueueVisible = false
 
-    // Summary sidebar
-    private var summarySidebar: SummarySidebarView?
-    private var summarySidebarWidth: NSLayoutConstraint?
-    private var isSummaryVisible = false
+    // Summary panel
+    private var summaryWindowController: SummaryWindowController?
     private var summarizeProcess: Process?
 
     // Element fullscreen
@@ -201,12 +199,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         sidebar.translatesAutoresizingMaskIntoConstraints = false
         self.queueSidebar = sidebar
 
-        // Summary sidebar
-        let summSidebar = SummarySidebarView(frame: .zero)
-        summSidebar.delegate = self
-        summSidebar.translatesAutoresizingMaskIntoConstraints = false
-        self.summarySidebar = summSidebar
-
         // Tree tab sidebar
         let treeSidebar = TreeTabSidebarView(frame: .zero)
         treeSidebar.delegate = self
@@ -214,13 +206,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         treeSidebar.translatesAutoresizingMaskIntoConstraints = false
         self.treeTabSidebar = treeSidebar
 
-        // Body container (tree sidebar + webview + queue/summary sidebar)
+        // Body container (tree sidebar + webview + queue sidebar)
         let bodyContainer = NSView()
         bodyContainer.translatesAutoresizingMaskIntoConstraints = false
         bodyContainer.addSubview(treeSidebar)
         bodyContainer.addSubview(webViewContainer)
         bodyContainer.addSubview(sidebar)
-        bodyContainer.addSubview(summSidebar)
 
         contentView.addSubview(tabBarContainer)
         contentView.addSubview(addressBar)
@@ -230,9 +221,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         let sidebarWidth = sidebar.widthAnchor.constraint(equalToConstant: 0)
         self.queueSidebarWidth = sidebarWidth
-
-        let summSidebarWidth = summSidebar.widthAnchor.constraint(equalToConstant: 0)
-        self.summarySidebarWidth = summSidebarWidth
 
         let treeVisible = Settings.treeTabsEnabled && !Settings.treeTabsCollapsed
         let treeWidth = treeSidebar.widthAnchor.constraint(equalToConstant: treeVisible ? TreeTabSidebarView.width : 0)
@@ -285,11 +273,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             webViewContainer.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
             webViewContainer.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
 
-            summSidebar.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
-            summSidebar.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
-            summSidebar.trailingAnchor.constraint(equalTo: sidebar.leadingAnchor),
-            summSidebarWidth,
-
             sidebar.topAnchor.constraint(equalTo: bodyContainer.topAnchor),
             sidebar.trailingAnchor.constraint(equalTo: bodyContainer.trailingAnchor),
             sidebar.bottomAnchor.constraint(equalTo: bodyContainer.bottomAnchor),
@@ -307,9 +290,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         ])
     }
 
-    /// Layout order: Left → [treeSidebar?] [webView] [treeSidebar?] [summarySidebar] [queueSidebar] → Right
+    /// Layout order: Left → [treeSidebar?] [webView] [treeSidebar?] [queueSidebar] → Right
     private func applyTreeTabSideLayout(bodyContainer: NSView) {
-        guard let treeSidebar = treeTabSidebar, let summSidebar = summarySidebar else { return }
+        guard let treeSidebar = treeTabSidebar, let qSidebar = queueSidebar else { return }
 
         treeTabLeading?.isActive = false
         treeTabTrailing?.isActive = false
@@ -320,11 +303,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             treeTabLeading = treeSidebar.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor)
             webViewLeading = webViewContainer.leadingAnchor.constraint(equalTo: treeSidebar.trailingAnchor)
             treeTabTrailing = nil
-            webViewTrailingToTree = webViewContainer.trailingAnchor.constraint(equalTo: summSidebar.leadingAnchor)
+            webViewTrailingToTree = webViewContainer.trailingAnchor.constraint(equalTo: qSidebar.leadingAnchor)
         } else {
             webViewLeading = webViewContainer.leadingAnchor.constraint(equalTo: bodyContainer.leadingAnchor)
             webViewTrailingToTree = webViewContainer.trailingAnchor.constraint(equalTo: treeSidebar.leadingAnchor)
-            treeTabTrailing = treeSidebar.trailingAnchor.constraint(equalTo: summSidebar.leadingAnchor)
+            treeTabTrailing = treeSidebar.trailingAnchor.constraint(equalTo: qSidebar.leadingAnchor)
             treeTabLeading = nil
         }
 
@@ -1264,7 +1247,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             self.progressBarHeightConstraint?.animator().constant = 0
             self.treeTabSidebarWidth?.animator().constant = 0
             if self.isQueueVisible { self.queueSidebarWidth?.animator().constant = 0 }
-            if self.isSummaryVisible { self.summarySidebarWidth?.animator().constant = 0 }
         }
 
         window.titlebarAppearsTransparent = true
@@ -1299,7 +1281,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             self.progressBarHeightConstraint?.animator().constant = 2
             self.treeTabSidebarWidth?.animator().constant = treeW
             if self.isQueueVisible { self.queueSidebarWidth?.animator().constant = QueueSidebarView.width }
-            if self.isSummaryVisible { self.summarySidebarWidth?.animator().constant = SummarySidebarView.width }
         }
 
         window.titlebarAppearsTransparent = false
@@ -1330,7 +1311,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     @objc func toggleQueue() {
         guard Settings.queueEnabled else { return }
-        if isSummaryVisible { closeSummarySidebar() }
         isQueueVisible.toggle()
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2
@@ -1348,37 +1328,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         toggleQueue()
     }
 
-    // MARK: - Summary Sidebar
+    // MARK: - Summary Panel
 
     func ytWebViewSummarizeVideo(url videoURL: String) {
-        if isQueueVisible { toggleQueue() }
-        if !isSummaryVisible { showSummarySidebar() }
-        summarySidebar?.showLoading(title: videoURL)
+        if summaryWindowController == nil {
+            summaryWindowController = SummaryWindowController()
+        }
+        summaryWindowController?.showLoading(title: videoURL)
+        summaryWindowController?.window?.makeKeyAndOrderFront(nil)
         runSummarize(url: videoURL)
-    }
-
-    private func showSummarySidebar() {
-        isSummaryVisible = true
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            summarySidebarWidth?.animator().constant = SummarySidebarView.width
-        }
-    }
-
-    private func closeSummarySidebar() {
-        isSummaryVisible = false
-        summarizeProcess?.terminate()
-        summarizeProcess = nil
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            summarySidebarWidth?.animator().constant = 0
-        }
-    }
-
-    func summarySidebarDidClose(_ sidebar: SummarySidebarView) {
-        closeSummarySidebar()
     }
 
     private func runSummarize(url: String) {
@@ -1388,7 +1346,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-lc", "node /Users/cjw/code/summarize/dist/cli.js '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
+            process.arguments = ["-lc", "node /Users/cjw/code/summarize/dist/cli.js --plain --no-color '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
             process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()
@@ -1406,15 +1364,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
                 DispatchQueue.main.async { [weak self] in
                     self?.summarizeProcess = nil
                     if process.terminationStatus == 0 {
-                        self?.summarySidebar?.showSummary(output)
+                        self?.summaryWindowController?.showSummary(output)
                     } else {
-                        self?.summarySidebar?.showError("Summarize failed (exit \(process.terminationStatus))")
+                        self?.summaryWindowController?.showError("Summarize failed (exit \(process.terminationStatus))")
                     }
                 }
             } catch {
                 DispatchQueue.main.async { [weak self] in
                     self?.summarizeProcess = nil
-                    self?.summarySidebar?.showError("Failed to run summarize: \(error.localizedDescription)")
+                    self?.summaryWindowController?.showError("Failed to run summarize: \(error.localizedDescription)")
                 }
             }
         }
@@ -1784,7 +1742,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             progressBarHeightConstraint?.constant = 2
             treeTabSidebarWidth?.constant = treeW
             if isQueueVisible { queueSidebarWidth?.constant = QueueSidebarView.width }
-            if isSummaryVisible { summarySidebarWidth?.constant = SummarySidebarView.width }
             window?.titlebarAppearsTransparent = false
             window?.titleVisibility = .visible
             window?.styleMask.remove(.fullSizeContentView)

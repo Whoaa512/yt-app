@@ -1,43 +1,44 @@
 import Cocoa
 
-protocol SummarySidebarDelegate: AnyObject {
-    func summarySidebarDidClose(_ sidebar: SummarySidebarView)
-}
-
-class SummarySidebarView: NSView {
-    weak var delegate: SummarySidebarDelegate?
-
+class SummaryWindowController: NSWindowController {
     private let scrollView = NSScrollView()
     private let textView = NSTextView()
-    private let headerLabel = NSTextField(labelWithString: "Summary")
+    private let titleLabel = NSTextField(labelWithString: "")
     private let spinner = NSProgressIndicator()
     private let statusLabel = NSTextField(labelWithString: "")
-    private let titleLabel = NSTextField(labelWithString: "")
 
-    static let width: CGFloat = 380
+    init() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 600),
+            styleMask: [.titled, .closable, .resizable, .utilityWindow],
+            backing: .buffered,
+            defer: false
+        )
+        panel.title = "Video Summary"
+        panel.minSize = NSSize(width: 320, height: 400)
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.isReleasedWhenClosed = false
+        panel.backgroundColor = NSColor(white: 0.08, alpha: 1)
+        panel.titlebarAppearsTransparent = true
+        panel.titleVisibility = .hidden
 
-    override init(frame: NSRect) {
-        super.init(frame: frame)
-        setup()
+        super.init(window: panel)
+        setupUI()
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    private func setup() {
-        wantsLayer = true
-        layer?.backgroundColor = NSColor(white: 0.08, alpha: 1).cgColor
+    private func setupUI() {
+        guard let contentView = window?.contentView else { return }
+        contentView.wantsLayer = true
+        contentView.layer?.backgroundColor = NSColor(white: 0.08, alpha: 1).cgColor
 
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.3).cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(border)
-
+        let headerLabel = NSTextField(labelWithString: "Summary")
         headerLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         headerLabel.textColor = .labelColor
-        headerLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let closeButton = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: "Close")!, target: self, action: #selector(closeSidebar))
+        let closeButton = NSButton(image: NSImage(systemSymbolName: "xmark", accessibilityDescription: "Close")!, target: self, action: #selector(closePanel))
         closeButton.isBordered = false
         closeButton.bezelStyle = .recessed
 
@@ -53,26 +54,26 @@ class SummarySidebarView: NSView {
         headerStack.spacing = 6
         headerStack.edgeInsets = NSEdgeInsets(top: 0, left: 12, bottom: 0, right: 8)
         headerStack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(headerStack)
+        contentView.addSubview(headerStack)
 
         titleLabel.font = .systemFont(ofSize: 11, weight: .medium)
         titleLabel.textColor = .secondaryLabelColor
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.maximumNumberOfLines = 2
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(titleLabel)
+        contentView.addSubview(titleLabel)
 
         spinner.style = .spinning
         spinner.controlSize = .small
         spinner.translatesAutoresizingMaskIntoConstraints = false
         spinner.isHidden = true
-        addSubview(spinner)
+        contentView.addSubview(spinner)
 
         statusLabel.font = .systemFont(ofSize: 11)
         statusLabel.textColor = .tertiaryLabelColor
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         statusLabel.isHidden = true
-        addSubview(statusLabel)
+        contentView.addSubview(statusLabel)
 
         textView.isEditable = false
         textView.isSelectable = true
@@ -92,33 +93,28 @@ class SummarySidebarView: NSView {
         scrollView.contentInsets = NSEdgeInsets(top: 2, left: 0, bottom: 2, right: 0)
         scrollView.documentView = textView
         scrollView.contentView.drawsBackground = false
-        addSubview(scrollView)
+        contentView.addSubview(scrollView)
 
         NSLayoutConstraint.activate([
-            border.leadingAnchor.constraint(equalTo: leadingAnchor),
-            border.topAnchor.constraint(equalTo: topAnchor),
-            border.bottomAnchor.constraint(equalTo: bottomAnchor),
-            border.widthAnchor.constraint(equalToConstant: 1),
-
-            headerStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            headerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            headerStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            headerStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            headerStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            headerStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             headerStack.heightAnchor.constraint(equalToConstant: 28),
 
             titleLabel.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 4),
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
 
             spinner.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
-            spinner.centerXAnchor.constraint(equalTo: centerXAnchor),
+            spinner.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
             statusLabel.topAnchor.constraint(equalTo: spinner.bottomAnchor, constant: 8),
-            statusLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            statusLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
 
             scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
         ])
     }
 
@@ -127,6 +123,7 @@ class SummarySidebarView: NSView {
         spinner.isHidden = false
         spinner.startAnimation(nil)
         statusLabel.stringValue = "Summarizing…"
+        statusLabel.textColor = .tertiaryLabelColor
         statusLabel.isHidden = false
         textView.string = ""
     }
@@ -146,8 +143,8 @@ class SummarySidebarView: NSView {
         statusLabel.isHidden = false
     }
 
-    @objc private func closeSidebar() {
-        delegate?.summarySidebarDidClose(self)
+    @objc private func closePanel() {
+        window?.close()
     }
 
     @objc private func copyContent() {
