@@ -206,7 +206,10 @@ class TabManager {
         tab.parent?.removeChild(tab)
         tab.children.removeAll()
 
-        tab.webView?.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(e=>{e.pause();e.src=''})")
+        if tab.isPlayingMedia {
+            MediaKeyHandler.shared.clearNowPlaying()
+        }
+        stopAndCleanUpWebView(tab.webView)
         tab.webView = nil
         tabs.remove(at: index)
         delegate?.tabManager(self, didRemoveTabAt: index)
@@ -232,8 +235,13 @@ class TabManager {
                 indicesToRemove.append(i)
             }
         }
+        var clearedNowPlaying = false
         for i in indicesToRemove.sorted().reversed() {
-            tabs[i].webView?.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(e=>{e.pause();e.src=''})")
+            if tabs[i].isPlayingMedia && !clearedNowPlaying {
+                MediaKeyHandler.shared.clearNowPlaying()
+                clearedNowPlaying = true
+            }
+            stopAndCleanUpWebView(tabs[i].webView)
             tabs[i].webView = nil
             tabs.remove(at: i)
             delegate?.tabManager(self, didRemoveTabAt: i)
@@ -245,6 +253,13 @@ class TabManager {
             let newIndex = min(index, tabs.count - 1)
             selectTab(at: newIndex)
         }
+    }
+
+    private func stopAndCleanUpWebView(_ webView: WKWebView?) {
+        guard let webView else { return }
+        webView.stopLoading()
+        webView.evaluateJavaScript("document.querySelectorAll('video,audio').forEach(e=>{e.pause();e.src=''})")
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
     }
 
     func reparentTab(_ tab: Tab, toParent newParent: Tab?, atIndex childIndex: Int) {
