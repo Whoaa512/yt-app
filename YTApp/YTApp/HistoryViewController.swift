@@ -31,7 +31,26 @@ class HistoryViewController: NSViewController, NSTableViewDataSource, NSTableVie
         loadHistory()
     }
 
+    override func cancelOperation(_ sender: Any?) {
+        dismiss(nil)
+    }
+
     private func setupUI() {
+        let closeBtn = NSButton(title: "✕", target: self, action: #selector(closeSheet))
+        closeBtn.bezelStyle = .inline
+        closeBtn.isBordered = false
+        closeBtn.font = .systemFont(ofSize: 14, weight: .medium)
+        closeBtn.contentTintColor = .secondaryLabelColor
+        closeBtn.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(closeBtn)
+
+        NSLayoutConstraint.activate([
+            closeBtn.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
+            closeBtn.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            closeBtn.widthAnchor.constraint(equalToConstant: 20),
+            closeBtn.heightAnchor.constraint(equalToConstant: 20),
+        ])
+
         searchField.placeholderString = "Search history..."
         searchField.delegate = self
         searchField.translatesAutoresizingMaskIntoConstraints = false
@@ -105,6 +124,10 @@ class HistoryViewController: NSViewController, NSTableViewDataSource, NSTableVie
             HistoryManager.shared.clearAll()
             loadHistory()
         }
+    }
+
+    @objc private func closeSheet() {
+        dismiss(nil)
     }
 
     @objc private func rowDoubleClicked() {

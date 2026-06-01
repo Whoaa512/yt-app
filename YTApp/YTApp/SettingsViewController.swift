@@ -22,7 +22,26 @@ class SettingsViewController: NSViewController {
         setupLayout()
     }
 
+    override func cancelOperation(_ sender: Any?) {
+        dismiss(nil)
+    }
+
     private func setupLayout() {
+        let xBtn = NSButton(title: "\u{2715}", target: self, action: #selector(closeSheet))
+        xBtn.bezelStyle = .inline
+        xBtn.isBordered = false
+        xBtn.font = .systemFont(ofSize: 14, weight: .medium)
+        xBtn.contentTintColor = .secondaryLabelColor
+        xBtn.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(xBtn)
+
+        NSLayoutConstraint.activate([
+            xBtn.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
+            xBtn.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            xBtn.widthAnchor.constraint(equalToConstant: 20),
+            xBtn.heightAnchor.constraint(equalToConstant: 20),
+        ])
+
         let titleLabel = NSTextField(labelWithString: "⚙  Settings")
         titleLabel.font = .systemFont(ofSize: 18, weight: .semibold)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false

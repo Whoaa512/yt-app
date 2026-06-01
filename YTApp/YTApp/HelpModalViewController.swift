@@ -33,6 +33,10 @@ class HelpModalViewController: NSViewController, NSTableViewDataSource, NSTableV
         setupLayout()
     }
 
+    override func cancelOperation(_ sender: Any?) {
+        dismiss(nil)
+    }
+
     private func buildSections() {
         sections = []
         var cats: [String: [(key: String, label: String)]] = [:]
@@ -52,6 +56,21 @@ class HelpModalViewController: NSViewController, NSTableViewDataSource, NSTableV
 
     private func setupLayout() {
         let container = view
+
+        let xBtn = NSButton(title: "\u{2715}", target: self, action: #selector(closeSheet))
+        xBtn.bezelStyle = .inline
+        xBtn.isBordered = false
+        xBtn.font = .systemFont(ofSize: 14, weight: .medium)
+        xBtn.contentTintColor = .secondaryLabelColor
+        xBtn.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(xBtn)
+
+        NSLayoutConstraint.activate([
+            xBtn.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+            xBtn.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -10),
+            xBtn.widthAnchor.constraint(equalToConstant: 20),
+            xBtn.heightAnchor.constraint(equalToConstant: 20),
+        ])
 
         // Title
         let titleLabel = NSTextField(labelWithString: "⌨️  Keyboard Shortcuts")
