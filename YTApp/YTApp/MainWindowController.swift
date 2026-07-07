@@ -3,7 +3,7 @@ import WebKit
 
 class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDelegate,
     AddressBarDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler,
-    HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate,
+    HistoryViewControllerDelegate, ToolbarDelegate, QueueSidebarDelegate, QueueManagerDelegate, TranscriptSidebarDelegate,
     KeyboardShortcutDelegate, HelpModalDelegate, PluginManagerDelegate, PluginSettingsDelegate, SettingsDelegate,
     TreeTabSidebarDelegate, YTWebViewContextMenuDelegate,
     DownloadManagerDelegate, OfflineLibraryViewDelegate, OfflinePlayerDelegate {
@@ -36,6 +36,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         formatter.minimumIntegerDigits = 1
         return formatter
     }()
+
+    // Transcript overlay
+    private var transcriptSidebar: TranscriptSidebarView?
+    private var transcriptTrailing: NSLayoutConstraint?
+    private var isTranscriptVisible = false
 
     // Queue sidebar
     private var queueSidebar: QueueSidebarView?
@@ -1140,6 +1145,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             if url.absoluteString.contains("youtube.com/watch") {
                 applyPlaybackSettings(to: webView)
                 resumePlaybackIfNeeded(url: url, webView: webView)
+                if isTranscriptVisible, tab.id == tabManager.activeTab?.id {
+                    transcriptSidebar?.showLoading()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self, weak webView] in
+                        guard let self, let webView, self.isTranscriptVisible else { return }
+                        self.fetchTranscript(from: webView)
+                    }
+                }
                 webView.evaluateJavaScript(durationExtractorJS) { result, _ in
                     let duration = result as? String
                     HistoryManager.shared.recordVisit(url: url.absoluteString, title: tab.title, duration: duration)
@@ -1199,6 +1211,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
         let currentTime = json["currentTime"] as? Double ?? 0
         let duration = json["duration"] as? Double ?? 0
+        if isTranscriptVisible, tab.id == tabManager.activeTab?.id {
+            transcriptSidebar?.updateTime(currentTime)
+        }
         if currentTime > 5 && duration > 0 && currentTime < duration - 5,
            let urlStr = webView.url?.absoluteString {
             HistoryManager.shared.savePlaybackPosition(url: urlStr, position: currentTime)
@@ -1330,6 +1345,94 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func queueSidebarDidClose(_ sidebar: QueueSidebarView) {
         toggleQueue()
+    }
+
+    // MARK: - Transcript
+
+    func shortcutToggleTranscript() {
+        if isTranscriptVisible {
+            hideTranscript()
+            return
+        }
+        guard let webView = tabManager.activeTab?.webView,
+              webView.url?.absoluteString.contains("/watch") == true else {
+            showToast("No video for transcript")
+            return
+        }
+        showTranscriptPanel()
+        fetchTranscript(from: webView)
+    }
+
+    private func showTranscriptPanel() {
+        if transcriptSidebar == nil {
+            let view = TranscriptSidebarView(frame: .zero)
+            view.delegate = self
+            view.translatesAutoresizingMaskIntoConstraints = false
+            webViewContainer.addSubview(view)
+            let trailing = view.trailingAnchor.constraint(equalTo: webViewContainer.trailingAnchor, constant: TranscriptSidebarView.width)
+            NSLayoutConstraint.activate([
+                view.topAnchor.constraint(equalTo: webViewContainer.topAnchor),
+                view.bottomAnchor.constraint(equalTo: webViewContainer.bottomAnchor),
+                view.widthAnchor.constraint(equalToConstant: TranscriptSidebarView.width),
+                trailing,
+            ])
+            transcriptSidebar = view
+            transcriptTrailing = trailing
+            webViewContainer.layoutSubtreeIfNeeded()
+        }
+        isTranscriptVisible = true
+        transcriptSidebar?.showLoading()
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.22
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            transcriptTrailing?.animator().constant = 0
+        }
+    }
+
+    private func hideTranscript() {
+        isTranscriptVisible = false
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.22
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            transcriptTrailing?.animator().constant = TranscriptSidebarView.width
+        }
+    }
+
+    private func fetchTranscript(from webView: WKWebView) {
+        let js = """
+        const player = document.getElementById('movie_player');
+        const response = (player && player.getPlayerResponse && player.getPlayerResponse()) || window.ytInitialPlayerResponse;
+        const tracks = response?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+        if (!tracks.length) return null;
+        const track = tracks.find(t => t.languageCode === 'en' && !t.kind) || tracks.find(t => t.languageCode === 'en') || tracks[0];
+        const res = await fetch(track.baseUrl + '&fmt=json3');
+        return await res.text();
+        """
+        webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self, self.isTranscriptVisible else { return }
+                switch result {
+                case .success(let value):
+                    guard let text = value as? String else {
+                        self.transcriptSidebar?.showError("No transcript available")
+                        return
+                    }
+                    let cues = TranscriptParser.parse(json3: text)
+                    self.transcriptSidebar?.show(cues: cues)
+                case .failure:
+                    self.transcriptSidebar?.showError("Couldn't load transcript")
+                }
+            }
+        }
+    }
+
+    func transcriptSidebar(_ sidebar: TranscriptSidebarView, didSelectTime time: Double) {
+        tabManager.activeTab?.webView?.evaluateJavaScript(
+            "(function(){const v=document.querySelector('video'); if(v){v.currentTime=\(time);}})()")
+    }
+
+    func transcriptSidebarDidClose(_ sidebar: TranscriptSidebarView) {
+        hideTranscript()
     }
 
     // MARK: - Summary Panel
@@ -1978,6 +2081,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             PaletteItem(title: "Show History", subtitle: "gh", symbol: "clock.arrow.circlepath", action: { [weak self] in self?.showHistory() }),
             PaletteItem(title: "Toggle Picture-in-Picture", subtitle: "gi", symbol: "pip", action: { [weak self] in self?.shortcutTogglePiP() }),
             PaletteItem(title: "Download Video", subtitle: "gd", symbol: "arrow.down.circle", action: { [weak self] in self?.shortcutDownloadVideo() }),
+            PaletteItem(title: "Toggle Transcript", subtitle: "gt", symbol: "text.quote", action: { [weak self] in self?.shortcutToggleTranscript() }),
             PaletteItem(title: "Pin Speed to Channel", subtitle: "gp", symbol: "pin", action: { [weak self] in self?.shortcutTogglePinSpeed() }),
             PaletteItem(title: "Toggle Vertical Tabs", subtitle: "e", symbol: "sidebar.right", action: { [weak self] in self?.toggleTreeTabSidebar() }),
             PaletteItem(title: "Suspend Other Tabs", subtitle: "gS", symbol: "moon.zzz", action: { [weak self] in self?.shortcutSuspendOtherTabs() }),

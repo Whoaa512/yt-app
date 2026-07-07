@@ -14,6 +14,7 @@ let package = Package(
                 "FuzzyMatcher.swift",
                 "RateRamp.swift",
                 "VideoURL.swift",
+                "TranscriptParser.swift",
             ]
         ),
         .testTarget(

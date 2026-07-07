@@ -47,6 +47,8 @@
 		AA000047 /* CommandPaletteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000047; };
 		AA000048 /* RateRamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000048; };
 		AA000049 /* VideoURL.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000049; };
+		AA000050 /* TranscriptParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000050; };
+		AA000051 /* TranscriptSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000051; };
 		AA000036 /* YTWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000038; };
 		AA000037 /* SummarizeContext.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000039; };
 		AA000038 /* InputFocusTracker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000040; };
@@ -99,6 +101,8 @@
 		BB000047 /* CommandPaletteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteController.swift; sourceTree = "<group>"; };
 		BB000048 /* RateRamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateRamp.swift; sourceTree = "<group>"; };
 		BB000049 /* VideoURL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoURL.swift; sourceTree = "<group>"; };
+		BB000050 /* TranscriptParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptParser.swift; sourceTree = "<group>"; };
+		BB000051 /* TranscriptSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSidebarView.swift; sourceTree = "<group>"; };
 		BB000038 /* YTWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YTWebView.swift; sourceTree = "<group>"; };
 		BB000039 /* SummarizeContext.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SummarizeContext.js; sourceTree = "<group>"; };
 		BB000040 /* InputFocusTracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = InputFocusTracker.js; sourceTree = "<group>"; };
@@ -161,6 +165,8 @@
 				BB000047 /* CommandPaletteController.swift */,
 				BB000048 /* RateRamp.swift */,
 				BB000049 /* VideoURL.swift */,
+				BB000050 /* TranscriptParser.swift */,
+				BB000051 /* TranscriptSidebarView.swift */,
 				BB000038 /* YTWebView.swift */,
 				BB000042 /* DownloadManager.swift */,
 				BB000043 /* OfflineLibraryView.swift */,
@@ -315,6 +321,8 @@
 				AA000047 /* CommandPaletteController.swift in Sources */,
 				AA000048 /* RateRamp.swift in Sources */,
 				AA000049 /* VideoURL.swift in Sources */,
+				AA000050 /* TranscriptParser.swift in Sources */,
+				AA000051 /* TranscriptSidebarView.swift in Sources */,
 				AA000036 /* YTWebView.swift in Sources */,
 				AA000040 /* DownloadManager.swift in Sources */,
 				AA000041 /* OfflineLibraryView.swift in Sources */,

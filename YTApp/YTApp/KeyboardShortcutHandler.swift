@@ -29,6 +29,7 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutDownloadVideo()
     func shortcutToggleTreeTabs()
     func shortcutShowCommandPalette()
+    func shortcutToggleTranscript()
     func shortcutActiveWebView() -> WKWebView?
     func shortcutActiveURL() -> String?
 }
@@ -84,6 +85,7 @@ class KeyboardShortcutHandler {
         Shortcut(key: "⌘K", label: "Command palette", category: "Other"),
         Shortcut(key: "?", label: "Show keyboard shortcuts", category: "Other"),
         Shortcut(key: "gd", label: "Download video (yt-dlp)", category: "Playback"),
+        Shortcut(key: "gt", label: "Toggle transcript sidebar", category: "Playback"),
         Shortcut(key: "gm", label: "Start element picker (create macro)", category: "Other"),
     ]
 
@@ -168,6 +170,7 @@ class KeyboardShortcutHandler {
             case "gh": delegate?.shortcutShowHistory(); return true
             case "gm": delegate?.shortcutStartElementPicker(); return true
             case "gd": delegate?.shortcutDownloadVideo(); return true
+            case "gt": delegate?.shortcutToggleTranscript(); return true
             case "gi": delegate?.shortcutTogglePiP(); return true
             case "gp": delegate?.shortcutTogglePinSpeed(); return true
             case "gs": delegate?.shortcutToggleSuspendTab(); return true
