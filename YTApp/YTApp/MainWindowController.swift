@@ -16,6 +16,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private let webViewContainer = NSView()
     private var tabBarScrollView: NSScrollView!
     private let keyboardHandler = KeyboardShortcutHandler()
+    private let commandPalette = CommandPaletteController()
     private var helpModal: HelpModalViewController?
 
     // Custom tab bar
@@ -1959,6 +1960,65 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     func shortcutStartElementPicker() {
         tabManager.activeTab?.webView?.evaluateJavaScript("window.__ytStartElementPicker && window.__ytStartElementPicker()")
+    }
+
+    func shortcutShowCommandPalette() {
+        guard let window = self.window else { return }
+        commandPalette.show(over: window, items: buildPaletteItems())
+    }
+
+    private func buildPaletteItems() -> [PaletteItem] {
+        var items: [PaletteItem] = [
+            PaletteItem(title: "New Tab", subtitle: "t", symbol: "plus.square", action: { [weak self] in self?.newTab() }),
+            PaletteItem(title: "Close Tab", subtitle: "x", symbol: "xmark.square", action: { [weak self] in self?.closeCurrentTab() }),
+            PaletteItem(title: "Toggle Queue Sidebar", subtitle: "q", symbol: "list.triangle", action: { [weak self] in self?.toggleQueue() }),
+            PaletteItem(title: "Show History", subtitle: "gh", symbol: "clock.arrow.circlepath", action: { [weak self] in self?.showHistory() }),
+            PaletteItem(title: "Toggle Picture-in-Picture", subtitle: "gi", symbol: "pip", action: { [weak self] in self?.shortcutTogglePiP() }),
+            PaletteItem(title: "Download Video", subtitle: "gd", symbol: "arrow.down.circle", action: { [weak self] in self?.shortcutDownloadVideo() }),
+            PaletteItem(title: "Pin Speed to Channel", subtitle: "gp", symbol: "pin", action: { [weak self] in self?.shortcutTogglePinSpeed() }),
+            PaletteItem(title: "Toggle Vertical Tabs", subtitle: "e", symbol: "sidebar.right", action: { [weak self] in self?.toggleTreeTabSidebar() }),
+            PaletteItem(title: "Suspend Other Tabs", subtitle: "gS", symbol: "moon.zzz", action: { [weak self] in self?.shortcutSuspendOtherTabs() }),
+            PaletteItem(title: "Unsuspend All Tabs", subtitle: "gU", symbol: "sun.max", action: { [weak self] in self?.shortcutUnsuspendAllTabs() }),
+            PaletteItem(title: "Keyboard Shortcuts Help", subtitle: "?", symbol: "keyboard", action: { [weak self] in self?.shortcutShowHelp() }),
+        ]
+
+        for rate in [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0] as [Float] {
+            items.append(PaletteItem(title: "Speed \(playbackRateText(rate))×", subtitle: nil, symbol: "speedometer", action: { [weak self] in
+                self?.setPlaybackRateFromPalette(rate)
+            }))
+        }
+
+        for (index, tab) in tabManager.tabs.enumerated() where tab.id != tabManager.activeTab?.id {
+            items.append(PaletteItem(title: "Tab: \(tab.title)", subtitle: tab.isSuspended ? "suspended" : nil, symbol: "rectangle.on.rectangle", action: { [weak self] in
+                self?.tabManager.selectTab(at: index)
+            }))
+        }
+
+        for (index, queueItem) in QueueManager.shared.items.enumerated() {
+            items.append(PaletteItem(title: "Play: \(queueItem.title)", subtitle: queueItem.channel, symbol: "play.circle", action: { [weak self] in
+                guard let self, let item = QueueManager.shared.playItem(at: index) else { return }
+                self.tabManager.activeTab?.webView?.load(URLRequest(url: item.watchURL))
+                self.queueSidebar?.reload()
+            }))
+        }
+
+        for entry in HistoryManager.shared.search(limit: 30) {
+            let title = entry.title ?? entry.url
+            items.append(PaletteItem(title: "Recent: \(title)", subtitle: entry.duration, symbol: "clock", action: { [weak self] in
+                guard let self, let url = URL(string: entry.url) else { return }
+                self.tabManager.activeTab?.webView?.load(URLRequest(url: url))
+            }))
+        }
+
+        return items
+    }
+
+    private func setPlaybackRateFromPalette(_ rate: Float) {
+        guard let tab = tabManager.activeTab else { return }
+        tab.playbackRate = rate
+        applyPlaybackRate(rate, to: tab)
+        toolbar.updatePlaybackRate(rate, pinned: tab.pinnedChannel)
+        showToast("Speed: \(playbackRateText(rate))×")
     }
 
     func shortcutActiveWebView() -> WKWebView? { tabManager.activeTab?.webView }

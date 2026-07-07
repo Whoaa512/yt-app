@@ -28,6 +28,7 @@ protocol KeyboardShortcutDelegate: AnyObject {
     func shortcutUnsuspendAllTabs()
     func shortcutDownloadVideo()
     func shortcutToggleTreeTabs()
+    func shortcutShowCommandPalette()
     func shortcutActiveWebView() -> WKWebView?
     func shortcutActiveURL() -> String?
 }
@@ -80,6 +81,7 @@ class KeyboardShortcutHandler {
         Shortcut(key: "gs", label: "Suspend / unsuspend tab", category: "Tabs"),
         Shortcut(key: "gS", label: "Suspend other tabs", category: "Tabs"),
         Shortcut(key: "gU", label: "Unsuspend all tabs", category: "Tabs"),
+        Shortcut(key: "⌘K", label: "Command palette", category: "Other"),
         Shortcut(key: "?", label: "Show keyboard shortcuts", category: "Other"),
         Shortcut(key: "gd", label: "Download video (yt-dlp)", category: "Playback"),
         Shortcut(key: "gm", label: "Start element picker (create macro)", category: "Other"),
@@ -105,6 +107,13 @@ class KeyboardShortcutHandler {
         // Cmd+Shift+E to toggle vertical tabs
         if mods == [.command, .shift], event.charactersIgnoringModifiers?.lowercased() == "e" {
             delegate?.shortcutToggleTreeTabs()
+            return true
+        }
+
+        // Cmd+K command palette — works even when a text field has focus
+        if mods == [.command], !event.modifierFlags.contains(.shift),
+           event.charactersIgnoringModifiers?.lowercased() == "k" {
+            delegate?.shortcutShowCommandPalette()
             return true
         }
 
