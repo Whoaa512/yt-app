@@ -15,6 +15,7 @@ let package = Package(
                 "RateRamp.swift",
                 "VideoURL.swift",
                 "TranscriptParser.swift",
+                "StatsAggregator.swift",
             ]
         ),
         .testTarget(

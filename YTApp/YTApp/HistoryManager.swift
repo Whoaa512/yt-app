@@ -43,6 +43,7 @@ class HistoryManager {
         sqlite3_exec(db, sql, nil, nil, nil)
 
         sqlite3_exec(db, "ALTER TABLE history ADD COLUMN playback_position REAL DEFAULT 0", nil, nil, nil)
+        sqlite3_exec(db, "ALTER TABLE history ADD COLUMN channel TEXT", nil, nil, nil)
     }
 
     func recordVisit(url: String, title: String?, duration: String?) {
@@ -166,6 +167,40 @@ class HistoryManager {
         }
         sqlite3_finalize(stmt)
         return position
+    }
+
+    /// Channel arrives via mediaBridge after the visit is recorded — attach it
+    /// to the latest row for the video so stats can rank channels.
+    func setChannel(url: String, channel: String) {
+        guard let db = db, !channel.isEmpty else { return }
+        let match = positionMatch(url: url)
+        let sql = "UPDATE history SET channel = ? WHERE id = (SELECT id FROM history WHERE \(match.clause) ORDER BY visited_at DESC LIMIT 1)"
+        var stmt: OpaquePointer?
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            sqlite3_bind_text(stmt, 1, (channel as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(stmt, 2, (match.param as NSString).utf8String, -1, nil)
+            sqlite3_step(stmt)
+        }
+        sqlite3_finalize(stmt)
+    }
+
+    func allWatchRecords() -> [WatchRecord] {
+        guard let db = db else { return [] }
+        var records: [WatchRecord] = []
+        let sql = "SELECT title, channel, duration, visited_at FROM history ORDER BY visited_at DESC"
+        var stmt: OpaquePointer?
+        if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let title = sqlite3_column_text(stmt, 0).map { String(cString: $0) } ?? ""
+                let channel = sqlite3_column_text(stmt, 1).map { String(cString: $0) }
+                let duration = sqlite3_column_text(stmt, 2).map { String(cString: $0) }
+                let visitedAtStr = sqlite3_column_text(stmt, 3).map { String(cString: $0) }
+                let visitedAt = visitedAtStr.flatMap { dateFormatter.date(from: $0) } ?? Date()
+                records.append(WatchRecord(title: title, channel: channel, durationText: duration, visitedAt: visitedAt))
+            }
+        }
+        sqlite3_finalize(stmt)
+        return records
     }
 
     func delete(id: Int64) {

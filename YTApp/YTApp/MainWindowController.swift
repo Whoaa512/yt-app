@@ -18,6 +18,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private let keyboardHandler = KeyboardShortcutHandler()
     private let commandPalette = CommandPaletteController()
     private let globalHotkeys = GlobalHotkeys()
+    private var statsWindowController: StatsWindowController?
     private var helpModal: HelpModalViewController?
 
     // Custom tab bar
@@ -1173,6 +1174,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         let channel = json["channel"] as? String ?? ""
         if !channel.isEmpty && channel != tab.currentChannel {
             tab.currentChannel = channel
+            if let urlStr = webView.url?.absoluteString, urlStr.contains("/watch") {
+                HistoryManager.shared.setChannel(url: urlStr, channel: channel)
+            }
             if let speed = Settings.speedForChannel(channel) {
                 tab.pinnedChannel = channel
                 tab.playbackRate = speed
@@ -2090,6 +2094,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             PaletteItem(title: "Suspend Other Tabs", subtitle: "gS", symbol: "moon.zzz", action: { [weak self] in self?.shortcutSuspendOtherTabs() }),
             PaletteItem(title: "Unsuspend All Tabs", subtitle: "gU", symbol: "sun.max", action: { [weak self] in self?.shortcutUnsuspendAllTabs() }),
             PaletteItem(title: "Keyboard Shortcuts Help", subtitle: "?", symbol: "keyboard", action: { [weak self] in self?.shortcutShowHelp() }),
+            PaletteItem(title: "Watch Stats", subtitle: nil, symbol: "chart.bar", action: { [weak self] in self?.showStats() }),
         ]
 
         for rate in [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0] as [Float] {
@@ -2121,6 +2126,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
 
         return items
+    }
+
+    private func showStats() {
+        if statsWindowController == nil {
+            statsWindowController = StatsWindowController()
+        }
+        statsWindowController?.refresh()
+        statsWindowController?.window?.makeKeyAndOrderFront(nil)
     }
 
     private func handleGlobalHotkey(_ action: GlobalHotkeys.Action) {
