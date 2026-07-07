@@ -8,6 +8,8 @@ Native macOS YouTube wrapper — Swift, AppKit, WKWebView. No storyboards.
 ./build.sh
 ```
 
+Unit tests (pure-logic files only, via SPM package at repo root): `swift test`. Add new pure-logic files to `Package.swift` sources to make them testable.
+
 Or manually: `cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=/Users/cjw/code/yt-app/build CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build`
 
 **Important**: Always use `SYMROOT=/Users/cjw/code/yt-app/build` — the app is launched from `build/Debug/YTApp.app`, not DerivedData.
@@ -37,6 +39,16 @@ Or manually: `cd YTApp && xcodebuild -scheme YTApp -configuration Debug SYMROOT=
 | `DownloadManager.swift` | yt-dlp download backend, SQLite metadata, progress tracking |
 | `OfflineLibraryView.swift` | Full-page inline grid of downloaded videos (YouTube-style cards) |
 | `OfflinePlayerView.swift` | Native AVPlayerView player with playlist nav, PiP, speed controls |
+| `FuzzyMatcher.swift` | Subsequence fuzzy matcher + ranking (tested) |
+| `CommandPaletteController.swift` | Cmd+K palette: actions, tab switch, queue play, recent history |
+| `RateRamp.swift` | Eased playback-rate transition generator (tested) |
+| `VideoURL.swift` | YouTube videoId extraction for URL-variant matching (tested) |
+| `TranscriptParser.swift` | timedtext json3 → cues, search, active-cue index (tested) |
+| `TranscriptSidebarView.swift` | Transcript overlay drawer (gt): clickable timestamps, follows playback |
+| `GlobalHotkeys.swift` | System-wide ⌃⌥⌘ hotkeys via Carbon (play/pause, seek, speed) |
+| `StatsAggregator.swift` | Watch-stats aggregation from history rows (tested) |
+| `StatsWindowController.swift` | Watch Stats window (open via palette) |
+| `EmptyStateView.swift` | Shared SF-Symbol empty-state placeholder |
 
 ### JavaScript (`YTApp/YTApp/JS/`)
 | File | Injection | Role |
