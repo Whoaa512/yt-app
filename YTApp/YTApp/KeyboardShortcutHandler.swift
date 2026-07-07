@@ -87,6 +87,9 @@ class KeyboardShortcutHandler {
         Shortcut(key: "gd", label: "Download video (yt-dlp)", category: "Playback"),
         Shortcut(key: "gt", label: "Toggle transcript sidebar", category: "Playback"),
         Shortcut(key: "gm", label: "Start element picker (create macro)", category: "Other"),
+        Shortcut(key: "⌃⌥⌘P", label: "Play/pause (works app-unfocused)", category: "Global"),
+        Shortcut(key: "⌃⌥⌘←/→", label: "Seek ±10s (works app-unfocused)", category: "Global"),
+        Shortcut(key: "⌃⌥⌘↑/↓", label: "Speed up/down (works app-unfocused)", category: "Global"),
     ]
 
     func start() {

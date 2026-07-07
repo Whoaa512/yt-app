@@ -17,6 +17,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
     private var tabBarScrollView: NSScrollView!
     private let keyboardHandler = KeyboardShortcutHandler()
     private let commandPalette = CommandPaletteController()
+    private let globalHotkeys = GlobalHotkeys()
     private var helpModal: HelpModalViewController?
 
     // Custom tab bar
@@ -121,6 +122,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         QueueManager.shared.delegate = self
         keyboardHandler.delegate = self
         keyboardHandler.start()
+        globalHotkeys.onAction = { [weak self] action in self?.handleGlobalHotkey(action) }
+        globalHotkeys.register()
 
         // Plugin system
         PluginManager.shared.delegate = self
@@ -2118,6 +2121,34 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         }
 
         return items
+    }
+
+    private func handleGlobalHotkey(_ action: GlobalHotkeys.Action) {
+        let playingTab = tabManager.tabs.first(where: { $0.isPlayingMedia }) ?? tabManager.activeTab
+        guard let tab = playingTab, let webView = tab.webView else { return }
+        switch action {
+        case .playPause:
+            webView.evaluateJavaScript("(function(){const v=document.querySelector('video'); if(v){v.paused?v.play():v.pause();}})()")
+        case .seekBack:
+            webView.evaluateJavaScript("(function(){const v=document.querySelector('video'); if(v){v.currentTime=Math.max(0,v.currentTime-10);}})()")
+        case .seekForward:
+            webView.evaluateJavaScript("(function(){const v=document.querySelector('video'); if(v){v.currentTime=Math.min(v.duration||1e9,v.currentTime+10);}})()")
+        case .speedUp, .speedDown:
+            let steps: [Float] = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+            let current = tab.playbackRate
+            let next: Float
+            if action == .speedUp {
+                next = steps.first(where: { $0 > current + 0.01 }) ?? steps.last!
+            } else {
+                next = steps.last(where: { $0 < current - 0.01 }) ?? steps.first!
+            }
+            tab.playbackRate = next
+            applyPlaybackRate(next, to: tab)
+            if tab.id == tabManager.activeTab?.id {
+                toolbar.updatePlaybackRate(next, pinned: tab.pinnedChannel)
+            }
+            showToast("Speed: \(playbackRateText(next))×")
+        }
     }
 
     private func setPlaybackRateFromPalette(_ rate: Float) {
