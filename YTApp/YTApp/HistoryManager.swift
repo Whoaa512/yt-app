@@ -129,13 +129,23 @@ class HistoryManager {
         return results
     }
 
+    // Positions match by video id when possible so `watch?v=X&list=…`,
+    // `watch?v=X&t=…` and youtu.be variants share one resume point.
+    private func positionMatch(url: String) -> (clause: String, param: String) {
+        if let id = VideoURL.videoId(from: url) {
+            return ("url LIKE ?", "%\(id)%")
+        }
+        return ("url = ?", url)
+    }
+
     func savePlaybackPosition(url: String, position: Double) {
         guard let db = db else { return }
-        let sql = "UPDATE history SET playback_position = ? WHERE id = (SELECT id FROM history WHERE url = ? ORDER BY visited_at DESC LIMIT 1)"
+        let match = positionMatch(url: url)
+        let sql = "UPDATE history SET playback_position = ? WHERE id = (SELECT id FROM history WHERE \(match.clause) ORDER BY visited_at DESC LIMIT 1)"
         var stmt: OpaquePointer?
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
             sqlite3_bind_double(stmt, 1, position)
-            sqlite3_bind_text(stmt, 2, (url as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(stmt, 2, (match.param as NSString).utf8String, -1, nil)
             sqlite3_step(stmt)
         }
         sqlite3_finalize(stmt)
@@ -143,11 +153,12 @@ class HistoryManager {
 
     func getPlaybackPosition(url: String) -> Double? {
         guard let db = db else { return nil }
-        let sql = "SELECT playback_position FROM history WHERE url = ? ORDER BY visited_at DESC LIMIT 1"
+        let match = positionMatch(url: url)
+        let sql = "SELECT playback_position FROM history WHERE \(match.clause) ORDER BY visited_at DESC LIMIT 1"
         var stmt: OpaquePointer?
         var position: Double?
         if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
-            sqlite3_bind_text(stmt, 1, (url as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(stmt, 1, (match.param as NSString).utf8String, -1, nil)
             if sqlite3_step(stmt) == SQLITE_ROW {
                 let val = sqlite3_column_double(stmt, 0)
                 if val > 5 { position = val }

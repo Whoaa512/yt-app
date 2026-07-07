@@ -13,6 +13,7 @@ let package = Package(
             sources: [
                 "FuzzyMatcher.swift",
                 "RateRamp.swift",
+                "VideoURL.swift",
             ]
         ),
         .testTarget(
