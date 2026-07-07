@@ -45,6 +45,7 @@
 		AA000045 /* SummaryWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000045; };
 		AA000046 /* FuzzyMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000046; };
 		AA000047 /* CommandPaletteController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000047; };
+		AA000048 /* RateRamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000048; };
 		AA000036 /* YTWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000038; };
 		AA000037 /* SummarizeContext.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000039; };
 		AA000038 /* InputFocusTracker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000040; };
@@ -95,6 +96,7 @@
 		BB000045 /* SummaryWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryWindowController.swift; sourceTree = "<group>"; };
 		BB000046 /* FuzzyMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyMatcher.swift; sourceTree = "<group>"; };
 		BB000047 /* CommandPaletteController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteController.swift; sourceTree = "<group>"; };
+		BB000048 /* RateRamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateRamp.swift; sourceTree = "<group>"; };
 		BB000038 /* YTWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YTWebView.swift; sourceTree = "<group>"; };
 		BB000039 /* SummarizeContext.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SummarizeContext.js; sourceTree = "<group>"; };
 		BB000040 /* InputFocusTracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = InputFocusTracker.js; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				BB000045 /* SummaryWindowController.swift */,
 				BB000046 /* FuzzyMatcher.swift */,
 				BB000047 /* CommandPaletteController.swift */,
+				BB000048 /* RateRamp.swift */,
 				BB000038 /* YTWebView.swift */,
 				BB000042 /* DownloadManager.swift */,
 				BB000043 /* OfflineLibraryView.swift */,
@@ -307,6 +310,7 @@
 				AA000045 /* SummaryWindowController.swift in Sources */,
 				AA000046 /* FuzzyMatcher.swift in Sources */,
 				AA000047 /* CommandPaletteController.swift in Sources */,
+				AA000048 /* RateRamp.swift in Sources */,
 				AA000036 /* YTWebView.swift in Sources */,
 				AA000040 /* DownloadManager.swift in Sources */,
 				AA000041 /* OfflineLibraryView.swift in Sources */,

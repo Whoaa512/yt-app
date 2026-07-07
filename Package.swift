@@ -12,6 +12,7 @@ let package = Package(
             path: "YTApp/YTApp",
             sources: [
                 "FuzzyMatcher.swift",
+                "RateRamp.swift",
             ]
         ),
         .testTarget(

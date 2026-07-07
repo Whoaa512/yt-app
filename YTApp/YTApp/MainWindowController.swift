@@ -930,7 +930,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
 
     private func applyPlaybackRate(_ rate: Float, to tab: Tab) {
         guard let webView = tab.webView else { return }
-        webView.evaluateJavaScript("document.querySelector('video').playbackRate = \(rate)")
+        webView.evaluateJavaScript("document.querySelector('video')?.playbackRate") { [weak webView] result, _ in
+            let from = (result as? NSNumber)?.floatValue ?? rate
+            webView?.evaluateJavaScript(RateRamp.rampJS(from: from, to: rate))
+        }
     }
 
     private func applyPlaybackSettings(to webView: WKWebView) {
