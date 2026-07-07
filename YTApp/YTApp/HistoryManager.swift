@@ -134,7 +134,8 @@ class HistoryManager {
     // `watch?v=X&t=…` and youtu.be variants share one resume point.
     private func positionMatch(url: String) -> (clause: String, param: String) {
         if let id = VideoURL.videoId(from: url) {
-            return ("url LIKE ?", "%\(id)%")
+            // instr, not LIKE: ids contain '_' which LIKE treats as a wildcard
+            return ("instr(url, ?) > 0", id)
         }
         return ("url = ?", url)
     }

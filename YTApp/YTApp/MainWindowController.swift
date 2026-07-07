@@ -2103,15 +2103,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             }))
         }
 
-        for (index, tab) in tabManager.tabs.enumerated() where tab.id != tabManager.activeTab?.id {
+        for tab in tabManager.tabs where tab.id != tabManager.activeTab?.id {
+            let tabId = tab.id
             items.append(PaletteItem(title: "Tab: \(tab.title)", subtitle: tab.isSuspended ? "suspended" : nil, symbol: "rectangle.on.rectangle", action: { [weak self] in
-                self?.tabManager.selectTab(at: index)
+                guard let self, let index = self.tabManager.tabs.firstIndex(where: { $0.id == tabId }) else { return }
+                self.tabManager.selectTab(at: index)
             }))
         }
 
-        for (index, queueItem) in QueueManager.shared.items.enumerated() {
+        for queueItem in QueueManager.shared.items {
+            let itemId = queueItem.id
             items.append(PaletteItem(title: "Play: \(queueItem.title)", subtitle: queueItem.channel, symbol: "play.circle", action: { [weak self] in
-                guard let self, let item = QueueManager.shared.playItem(at: index) else { return }
+                guard let self,
+                      let index = QueueManager.shared.items.firstIndex(where: { $0.id == itemId }),
+                      let item = QueueManager.shared.playItem(at: index) else { return }
                 self.tabManager.activeTab?.webView?.load(URLRequest(url: item.watchURL))
                 self.queueSidebar?.reload()
             }))

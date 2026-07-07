@@ -43,7 +43,7 @@ final class StatsWindowController: NSWindowController {
         grid.addArrangedSubview(statCard(value: "\(stats.last7DayCount)", label: "this week"))
         grid.addArrangedSubview(statCard(value: StatsAggregator.hoursText(stats.totalSeconds), label: "watch time"))
 
-        let savedLabel = NSTextField(labelWithString: "⚡ \(StatsAggregator.hoursText(saved)) saved at \(String(format: "%g", rate))× speed")
+        let savedLabel = NSTextField(labelWithString: "⚡ ~\(StatsAggregator.hoursText(saved)) saved if watched at \(String(format: "%g", rate))× (estimate)")
         savedLabel.font = .systemFont(ofSize: 13, weight: .medium)
         savedLabel.textColor = .secondaryLabelColor
 

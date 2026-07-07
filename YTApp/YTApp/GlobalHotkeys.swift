@@ -38,6 +38,7 @@ final class GlobalHotkeys {
     private var handlerRef: EventHandlerRef?
 
     func register() {
+        guard handlerRef == nil else { return }
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
         InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
