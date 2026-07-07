@@ -12,7 +12,11 @@ class QueueSidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
 
     private let tableView = NSTableView()
     private let scrollView = NSScrollView()
-    private let emptyLabel = NSTextField(labelWithString: "Queue is empty\nRight-click a video → Add to queue")
+    private let emptyState = EmptyStateView(
+        symbol: "text.badge.plus",
+        title: "Queue is empty",
+        hint: "Press a on a video, or right-click → Add to queue"
+    )
     private let countLabel = NSTextField(labelWithString: "")
 
     static let width: CGFloat = 340
@@ -90,13 +94,7 @@ class QueueSidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
         scrollView.contentView.drawsBackground = false
         addSubview(scrollView)
 
-        // Empty state
-        emptyLabel.textColor = .tertiaryLabelColor
-        emptyLabel.font = .systemFont(ofSize: 12)
-        emptyLabel.alignment = .center
-        emptyLabel.maximumNumberOfLines = 0
-        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(emptyLabel)
+        addSubview(emptyState)
 
         NSLayoutConstraint.activate([
             border.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -114,9 +112,10 @@ class QueueSidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            emptyLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            emptyLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 240),
+            emptyState.centerXAnchor.constraint(equalTo: centerXAnchor),
+            emptyState.centerYAnchor.constraint(equalTo: centerYAnchor),
+            emptyState.widthAnchor.constraint(lessThanOrEqualToConstant: 280),
+            emptyState.heightAnchor.constraint(equalToConstant: 160),
         ])
 
         reload()
@@ -124,7 +123,7 @@ class QueueSidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
 
     func reload() {
         let items = QueueManager.shared.items
-        emptyLabel.isHidden = !items.isEmpty
+        emptyState.isHidden = !items.isEmpty
         scrollView.isHidden = items.isEmpty
         countLabel.stringValue = items.isEmpty ? "" : "\(items.count) video\(items.count == 1 ? "" : "s")"
         tableView.reloadData()

@@ -12,6 +12,11 @@ class HistoryViewController: NSViewController, NSTableViewDataSource, NSTableVie
     private let searchField = NSSearchField()
     private let scrollView = NSScrollView()
     private let clearButton = NSButton()
+    private let emptyState = EmptyStateView(
+        symbol: "clock.arrow.circlepath",
+        title: "No history yet",
+        hint: "Videos you watch will show up here"
+    )
 
     private let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -87,8 +92,13 @@ class HistoryViewController: NSViewController, NSTableViewDataSource, NSTableVie
         scrollView.hasVerticalScroller = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
+        view.addSubview(emptyState)
 
         NSLayoutConstraint.activate([
+            emptyState.centerXAnchor.constraint(equalTo: scrollView.centerXAnchor),
+            emptyState.centerYAnchor.constraint(equalTo: scrollView.centerYAnchor),
+            emptyState.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            emptyState.heightAnchor.constraint(equalToConstant: 180),
             searchField.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
             searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
             searchField.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -8),
@@ -107,6 +117,14 @@ class HistoryViewController: NSViewController, NSTableViewDataSource, NSTableVie
     private func loadHistory(query: String = "") {
         entries = HistoryManager.shared.search(query: query)
         tableView.reloadData()
+        emptyState.isHidden = !entries.isEmpty
+        if entries.isEmpty {
+            if query.isEmpty {
+                emptyState.update(title: "No history yet", hint: "Videos you watch will show up here")
+            } else {
+                emptyState.update(title: "No matches", hint: "Nothing in history matches “\(query)”")
+            }
+        }
     }
 
     func controlTextDidChange(_ obj: Notification) {

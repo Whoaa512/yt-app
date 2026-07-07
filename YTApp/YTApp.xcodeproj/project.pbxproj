@@ -52,6 +52,7 @@
 		AA000052 /* GlobalHotkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000052; };
 		AA000053 /* StatsAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000053; };
 		AA000054 /* StatsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000054; };
+		AA000055 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000055; };
 		AA000036 /* YTWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000038; };
 		AA000037 /* SummarizeContext.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000039; };
 		AA000038 /* InputFocusTracker.js in Resources */ = {isa = PBXBuildFile; fileRef = BB000040; };
@@ -109,6 +110,7 @@
 		BB000052 /* GlobalHotkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeys.swift; sourceTree = "<group>"; };
 		BB000053 /* StatsAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsAggregator.swift; sourceTree = "<group>"; };
 		BB000054 /* StatsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsWindowController.swift; sourceTree = "<group>"; };
+		BB000055 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		BB000038 /* YTWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YTWebView.swift; sourceTree = "<group>"; };
 		BB000039 /* SummarizeContext.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = SummarizeContext.js; sourceTree = "<group>"; };
 		BB000040 /* InputFocusTracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = InputFocusTracker.js; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 				BB000052 /* GlobalHotkeys.swift */,
 				BB000053 /* StatsAggregator.swift */,
 				BB000054 /* StatsWindowController.swift */,
+				BB000055 /* EmptyStateView.swift */,
 				BB000038 /* YTWebView.swift */,
 				BB000042 /* DownloadManager.swift */,
 				BB000043 /* OfflineLibraryView.swift */,
@@ -335,6 +338,7 @@
 				AA000052 /* GlobalHotkeys.swift in Sources */,
 				AA000053 /* StatsAggregator.swift in Sources */,
 				AA000054 /* StatsWindowController.swift in Sources */,
+				AA000055 /* EmptyStateView.swift in Sources */,
 				AA000036 /* YTWebView.swift in Sources */,
 				AA000040 /* DownloadManager.swift in Sources */,
 				AA000041 /* OfflineLibraryView.swift in Sources */,
