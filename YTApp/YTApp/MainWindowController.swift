@@ -1460,7 +1460,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-lc", "node /Users/cjw/code/summarize/dist/cli.js --plain --no-color '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
+            // API keys live in $MY_DOTFILES/.env, which only interactive shells source — load it explicitly.
+            process.arguments = ["-lc", "[ -f \"$HOME/code/cj/dotfiles/.env\" ] && source \"$HOME/code/cj/dotfiles/.env\"; node /Users/cjw/code/summarize/dist/cli.js --plain --no-color '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
             process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()
