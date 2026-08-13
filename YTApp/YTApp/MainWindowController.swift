@@ -1177,12 +1177,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             if let urlStr = webView.url?.absoluteString, urlStr.contains("/watch") {
                 HistoryManager.shared.setChannel(url: urlStr, channel: channel)
             }
-            if let speed = Settings.speedForChannel(channel) {
-                tab.pinnedChannel = channel
+            // Collab videos list several channels; apply the slowest pinned
+            // speed among them so no channel's pin is exceeded.
+            let channels = json["channels"] as? [String] ?? [channel]
+            let pinnedMatches = channels.compactMap { ch in
+                Settings.speedForChannel(ch).map { (ch, $0) }
+            }
+            if let (pinnedCh, speed) = pinnedMatches.min(by: { $0.1 < $1.1 }) {
+                tab.pinnedChannel = pinnedCh
                 tab.playbackRate = speed
                 applyPlaybackRate(speed, to: tab)
                 if tab.id == tabManager.activeTab?.id {
-                    toolbar.updatePlaybackRate(speed, pinned: channel)
+                    toolbar.updatePlaybackRate(speed, pinned: pinnedCh)
                 }
             } else if tab.pinnedChannel != nil {
                 tab.pinnedChannel = nil
