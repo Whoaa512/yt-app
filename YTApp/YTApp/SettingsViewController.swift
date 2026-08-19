@@ -113,6 +113,7 @@ class SettingsViewController: NSViewController {
             "cli/gemini",
             "anthropic/claude-sonnet-4-5",
             "openai/gpt-5-mini",
+            "openai/gpt-5.6-luna",
             "google/gemini-3-flash-preview",
             "xai/grok-4-fast-non-reasoning",
         ])
