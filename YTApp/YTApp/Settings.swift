@@ -102,8 +102,13 @@ struct Settings {
     // MARK: - Summarize
 
     static var summarizeModel: String {
-        get { defaults.string(forKey: "summarizeModel") ?? "auto" }
+        get { defaults.string(forKey: "summarizeModel") ?? "openai/gpt-5.6-luna" }
         set { defaults.set(newValue, forKey: "summarizeModel") }
+    }
+
+    static var summarizeLength: String {
+        get { defaults.string(forKey: "summarizeLength") ?? "xl" }
+        set { defaults.set(newValue, forKey: "summarizeLength") }
     }
 
     enum SidebarSide: String {

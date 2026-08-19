@@ -1469,7 +1469,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             // API keys live in $MY_DOTFILES/.env, which only interactive shells source — load it explicitly.
             let model = Settings.summarizeModel.trimmingCharacters(in: .whitespaces)
             let modelFlag = model.isEmpty || model == "auto" ? "" : " --model '\(model.replacingOccurrences(of: "'", with: "'\\''"))'"
-            process.arguments = ["-lc", "[ -f \"$HOME/code/cj/dotfiles/.env\" ] && source \"$HOME/code/cj/dotfiles/.env\"; node /Users/cjw/code/summarize/dist/cli.js --plain --no-color\(modelFlag) '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
+            let length = Settings.summarizeLength
+            let lengthFlag = length == "xl" ? "" : " --length '\(length)'"
+            process.arguments = ["-lc", "[ -f \"$HOME/code/cj/dotfiles/.env\" ] && source \"$HOME/code/cj/dotfiles/.env\"; node /Users/cjw/code/summarize/dist/cli.js --plain --no-color\(modelFlag)\(lengthFlag) '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
             process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()
