@@ -99,6 +99,13 @@ struct Settings {
         set { defaults.set(newValue, forKey: "offlineExtraDirectories") }
     }
 
+    // MARK: - Summarize
+
+    static var summarizeModel: String {
+        get { defaults.string(forKey: "summarizeModel") ?? "auto" }
+        set { defaults.set(newValue, forKey: "summarizeModel") }
+    }
+
     enum SidebarSide: String {
         case left, right
     }

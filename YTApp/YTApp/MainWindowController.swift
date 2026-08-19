@@ -1467,7 +1467,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
             // API keys live in $MY_DOTFILES/.env, which only interactive shells source — load it explicitly.
-            process.arguments = ["-lc", "[ -f \"$HOME/code/cj/dotfiles/.env\" ] && source \"$HOME/code/cj/dotfiles/.env\"; node /Users/cjw/code/summarize/dist/cli.js --plain --no-color '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
+            let model = Settings.summarizeModel.trimmingCharacters(in: .whitespaces)
+            let modelFlag = model.isEmpty || model == "auto" ? "" : " --model '\(model.replacingOccurrences(of: "'", with: "'\\''"))'"
+            process.arguments = ["-lc", "[ -f \"$HOME/code/cj/dotfiles/.env\" ] && source \"$HOME/code/cj/dotfiles/.env\"; node /Users/cjw/code/summarize/dist/cli.js --plain --no-color\(modelFlag) '\(url.replacingOccurrences(of: "'", with: "'\\''"))'"]
             process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()

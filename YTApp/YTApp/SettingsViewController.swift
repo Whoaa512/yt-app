@@ -10,10 +10,11 @@ class SettingsViewController: NSViewController {
     private let queueToggle = NSSwitch()
     private let treeTabsToggle = NSSwitch()
     private let treeTabsSidePopup = NSPopUpButton()
+    private let summarizeModelCombo = NSComboBox()
     private var needsRestart = false
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 340))
     }
 
     override func viewDidLoad() {
@@ -91,6 +92,52 @@ class SettingsViewController: NSViewController {
             treeTabsSidePopup.trailingAnchor.constraint(equalTo: sideRow.trailingAnchor),
         ])
 
+        // Summarize model picker
+        let modelRow = NSView()
+        modelRow.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(modelRow)
+
+        let modelLabel = NSTextField(labelWithString: "Summarize Model")
+        modelLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        modelLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let modelSubtitle = NSTextField(labelWithString: "Passed to summarize CLI as --model")
+        modelSubtitle.font = .systemFont(ofSize: 11)
+        modelSubtitle.textColor = .secondaryLabelColor
+        modelSubtitle.translatesAutoresizingMaskIntoConstraints = false
+
+        summarizeModelCombo.addItems(withObjectValues: [
+            "auto",
+            "cli/claude",
+            "cli/codex",
+            "cli/gemini",
+            "anthropic/claude-sonnet-4-5",
+            "openai/gpt-5-mini",
+            "google/gemini-3-flash-preview",
+            "xai/grok-4-fast-non-reasoning",
+        ])
+        summarizeModelCombo.stringValue = Settings.summarizeModel
+        summarizeModelCombo.completes = true
+        summarizeModelCombo.target = self
+        summarizeModelCombo.action = #selector(summarizeModelChanged)
+        summarizeModelCombo.delegate = self
+        summarizeModelCombo.translatesAutoresizingMaskIntoConstraints = false
+
+        modelRow.addSubview(modelLabel)
+        modelRow.addSubview(modelSubtitle)
+        modelRow.addSubview(summarizeModelCombo)
+
+        NSLayoutConstraint.activate([
+            modelLabel.topAnchor.constraint(equalTo: modelRow.topAnchor),
+            modelLabel.leadingAnchor.constraint(equalTo: modelRow.leadingAnchor),
+            modelSubtitle.topAnchor.constraint(equalTo: modelLabel.bottomAnchor, constant: 2),
+            modelSubtitle.leadingAnchor.constraint(equalTo: modelRow.leadingAnchor),
+            modelSubtitle.bottomAnchor.constraint(equalTo: modelRow.bottomAnchor),
+            summarizeModelCombo.centerYAnchor.constraint(equalTo: modelRow.centerYAnchor),
+            summarizeModelCombo.trailingAnchor.constraint(equalTo: modelRow.trailingAnchor),
+            summarizeModelCombo.widthAnchor.constraint(equalToConstant: 220),
+        ])
+
         let restartNote = NSTextField(labelWithString: "")
         restartNote.font = .systemFont(ofSize: 11)
         restartNote.textColor = .systemOrange
@@ -123,7 +170,11 @@ class SettingsViewController: NSViewController {
             sideRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             sideRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            restartNote.topAnchor.constraint(equalTo: sideRow.bottomAnchor, constant: 12),
+            modelRow.topAnchor.constraint(equalTo: sideRow.bottomAnchor, constant: 16),
+            modelRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            modelRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+            restartNote.topAnchor.constraint(equalTo: modelRow.bottomAnchor, constant: 12),
             restartNote.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
 
             btnStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -193,7 +244,22 @@ class SettingsViewController: NSViewController {
         settingsDelegate?.settingsDidChange()
     }
 
+    @objc private func summarizeModelChanged() {
+        let value = summarizeModelCombo.stringValue.trimmingCharacters(in: .whitespaces)
+        Settings.summarizeModel = value.isEmpty ? "auto" : value
+    }
+
     @objc private func closeSheet() {
         dismiss(nil)
+    }
+}
+
+extension SettingsViewController: NSComboBoxDelegate {
+    func controlTextDidEndEditing(_ obj: Notification) {
+        summarizeModelChanged()
+    }
+
+    func comboBoxSelectionDidChange(_ notification: Notification) {
+        DispatchQueue.main.async { self.summarizeModelChanged() }
     }
 }
