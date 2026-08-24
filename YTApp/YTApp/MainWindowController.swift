@@ -1200,6 +1200,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, TabManagerDele
             }
         }
 
+        // YouTube resets the player's rate on reload/SPA nav; re-assert ours.
+        if let reported = json["playbackRate"] as? Double,
+           abs(Float(reported) - tab.playbackRate) > 0.01 {
+            applyPlaybackRate(tab.playbackRate, to: tab)
+        }
+
         let paused = json["paused"] as? Bool ?? true
         let ended = json["ended"] as? Bool ?? false
         let pip = json["pip"] as? Bool ?? false

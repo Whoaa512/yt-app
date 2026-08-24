@@ -47,6 +47,7 @@
             ended: video.ended,
             duration: video.duration || 0,
             currentTime: video.currentTime || 0,
+            playbackRate: video.playbackRate,
             pip: document.pictureInPictureElement === video,
             title: document.title.replace(/ - YouTube$/, ''),
             channel: channel,
