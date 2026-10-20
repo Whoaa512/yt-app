@@ -19,11 +19,23 @@
     // All channels on the video (collab videos have several). Names live in
     // ytd-watch-flexy's polymer data (avatar-stack dialog), which stays fresh
     // across SPA navigation, unlike window.ytInitialData. Cached per URL —
-    // the data tree is large.
+    // the data tree is large. Only walk the owner section: the full tree also
+    // holds related videos/comments, whose channels would falsely match pins.
     let channelsCache = { url: null, names: [] };
+    function findOwner(o, depth) {
+        if (!o || typeof o !== 'object' || depth > 12) return null;
+        if (o.videoSecondaryInfoRenderer) return o.videoSecondaryInfoRenderer.owner || null;
+        for (const k in o) {
+            if (k === 'secondaryResults') continue;
+            const r = findOwner(o[k], depth + 1);
+            if (r) return r;
+        }
+        return null;
+    }
     function getChannels(primary) {
         if (channelsCache.url === location.href) return channelsCache.names;
         const names = [];
+        const owner = findOwner(document.querySelector('ytd-watch-flexy')?.data, 0);
         (function walk(o, depth) {
             if (!o || typeof o !== 'object' || depth > 25 || names.length > 20) return;
             const text = o.avatarViewModel?.accessibilityText;
@@ -32,9 +44,11 @@
                 if (m && !names.includes(m[1])) names.push(m[1]);
             }
             for (const k in o) walk(o[k], depth + 1);
-        })(document.querySelector('ytd-watch-flexy')?.data, 0);
+        })(owner, 0);
+        // Polymer data can lag SPA nav; only cache once it matches the DOM owner.
+        const fresh = names.length && (!primary || names.includes(primary));
         if (primary && !names.includes(primary)) names.unshift(primary);
-        if (names.length) channelsCache = { url: location.href, names };
+        if (fresh) channelsCache = { url: location.href, names };
         return names;
     }
 
